@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - AgriRent</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Same header as the other pages, so the site feels like one product -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">🌾 AgriRent</a>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="#">Browse Equipment</a>
+        <a href="login.html">Login</a>
+        <a href="register.html" class="btn-nav active">Register</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- REGISTER PAGE (FR-AUTH-01): name, email, phone, password,
+         plus a role choice (Farmer or Owner - Admin/Partner are not self-registered).
+         No JS/backend yet - this form does not actually submit anything. -->
+    <section class="auth-section">
+      <div class="container">
+        <div class="auth-card">
+          <h1>Create your AgriRent account</h1>
+          <p class="auth-subtext">Register as a Farmer to rent equipment, or an Owner to list it.</p>
+
+          <form class="auth-form" action="#">
+            <label for="reg-name">Full Name</label>
+            <input type="text" id="reg-name" name="name" placeholder="e.g. Ramesh Naidu">
+
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" name="email" placeholder="you@example.com">
+
+            <label for="reg-phone">Phone Number</label>
+            <input type="tel" id="reg-phone" name="phone" placeholder="9876543210">
+
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" name="password" placeholder="Create a password">
+
+            <fieldset class="role-fieldset">
+              <legend>I am registering as a</legend>
+
+              <label class="role-option">
+                <input type="radio" name="role" value="farmer" checked>
+                Farmer &mdash; I want to rent equipment
+              </label>
+
+              <label class="role-option">
+                <input type="radio" name="role" value="owner">
+                Owner &mdash; I want to list equipment
+              </label>
+            </fieldset>
+
+            <button type="submit" class="btn-auth">Create Account</button>
+          </form>
+
+          <p class="auth-switch">
+            Already have an account? <a href="login.html">Log in here</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 AgriRent. Built as a learning project.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

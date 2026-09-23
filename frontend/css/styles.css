@@ -1,0 +1,580 @@
+/* =========================================
+   1. RESET / BASE
+   Browsers add their own default margins and use a box model that
+   makes width math confusing. This block fixes both, on every element.
+   ========================================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; /* padding & border are now INCLUDED in an element's width, not added on top */
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f2937;
+  background-color: #f9fafb;
+  line-height: 1.5;
+}
+
+/* A reusable "container" that centers content and stops it stretching
+   edge-to-edge on wide screens. Used inside every section. */
+.container {
+  max-width: 1100px;
+  margin: 0 auto; /* auto left/right margin = horizontal centering */
+  padding: 0 20px;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* =========================================
+   2. HEADER
+   Flexbox is used here because we want two things (logo, nav)
+   side-by-side, vertically centered, with space between them.
+   ========================================= */
+.site-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between; /* logo on the left, nav on the right */
+  align-items: center;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #166534;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px; /* spacing between nav links, no need for margins on each <a> */
+}
+
+.main-nav a {
+  font-weight: 500;
+  color: #374151;
+}
+
+.main-nav a.active {
+  color: #166534;
+  font-weight: 700;
+}
+
+.main-nav a:hover {
+  color: #166534;
+}
+
+.btn-nav {
+  background-color: #166534;
+  color: #ffffff !important;
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+.btn-nav:hover {
+  background-color: #14532d;
+}
+
+/* =========================================
+   3. HERO / SEARCH SECTION
+   ========================================= */
+.hero {
+  background-color: #166534;
+  color: #ffffff;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 2.2rem;
+  margin-bottom: 12px;
+}
+
+.hero-subtext {
+  font-size: 1.1rem;
+  color: #d1fae5;
+  max-width: 600px;
+  margin: 0 auto 32px auto;
+}
+
+/* The search form: a row of three controls on wide screens.
+   Flexbox again, because these three items sit in one horizontal line. */
+.search-form {
+  display: flex;
+  flex-wrap: wrap; /* lets items drop to a new line on small screens instead of overflowing */
+  justify-content: center;
+  gap: 12px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.search-form input,
+.search-form select {
+  padding: 12px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.search-form input {
+  flex: 1 1 260px; /* grow, shrink, and start from a 260px base width */
+}
+
+.search-form select {
+  flex: 0 1 180px;
+}
+
+.search-form button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  background-color: #f59e0b;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.search-form button:hover {
+  background-color: #d97706;
+}
+
+/* =========================================
+   4. EQUIPMENT GRID
+   CSS Grid is used here (not flexbox) because this is a genuine 2D
+   layout problem: we want cards to wrap into equal-width columns
+   AND equal-height rows automatically.
+   ========================================= */
+.equipment-section {
+  padding: 48px 0;
+}
+
+.equipment-section h2 {
+  font-size: 1.6rem;
+  margin-bottom: 24px;
+}
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 equal-width columns on desktop */
+  gap: 24px;
+}
+
+.equipment-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden; /* keeps the image's square corners from poking out of the rounded card */
+  display: flex;
+  flex-direction: column;
+}
+
+.equipment-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover; /* fills the box without stretching the image out of shape */
+}
+
+.card-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tag {
+  display: inline-block;
+  background-color: #dcfce7;
+  color: #166534;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.card-body h3 {
+  font-size: 1.1rem;
+}
+
+.location {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.price {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #166534;
+}
+
+.price span {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.btn-view {
+  margin-top: 8px;
+  text-align: center;
+  padding: 10px;
+  border: 1px solid #166534;
+  border-radius: 6px;
+  color: #166534;
+  font-weight: 600;
+}
+
+.btn-view:hover {
+  background-color: #166534;
+  color: #ffffff;
+}
+
+/* =========================================
+   5. FOOTER
+   ========================================= */
+.site-footer {
+  background-color: #111827;
+  color: #9ca3af;
+  text-align: center;
+  padding: 20px 0;
+  font-size: 0.9rem;
+}
+
+/* =========================================
+   6. EQUIPMENT DETAILS PAGE
+   Reuses .container, .tag, .location, .price (renamed price-box here),
+   .btn-view pattern etc. from the Home page so the two pages feel
+   like one product, not two different sites.
+   ========================================= */
+.details-section {
+  padding: 32px 0 48px 0;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: #166534;
+  font-weight: 600;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Two-column layout: gallery | info panel.
+   Grid again, because this is a fixed 2-column page shell, not wrapping cards. */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
+}
+
+.gallery .main-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.thumbnail-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.thumbnail-row img {
+  width: 90px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.info-panel h1 {
+  font-size: 1.8rem;
+  margin: 8px 0 4px 0;
+}
+
+.owner-line {
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.rating {
+  margin-left: 8px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.rating-count {
+  color: #6b7280;
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.price-box {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #166534;
+  margin: 16px 0;
+}
+
+.price-box span {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.btn-book {
+  display: inline-block;
+  background-color: #f59e0b;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 12px 28px;
+  border-radius: 6px;
+  margin-bottom: 28px;
+}
+
+.btn-book:hover {
+  background-color: #d97706;
+}
+
+.detail-block {
+  margin-bottom: 24px;
+}
+
+.detail-block h2 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.feature-list,
+.availability-list {
+  padding-left: 20px;
+  color: #374151;
+}
+
+.feature-list li,
+.availability-list li {
+  margin-bottom: 4px;
+}
+
+/* Reviews */
+.reviews-section {
+  padding: 0 0 48px 0;
+}
+
+.reviews-section h2 {
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+}
+
+.reviews-average {
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #6b7280;
+  margin-left: 8px;
+}
+
+.review-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.review-stars {
+  color: #f59e0b;
+  font-size: 0.95rem;
+}
+
+.review-text {
+  margin: 6px 0;
+}
+
+.review-author {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+/* =========================================
+   7. AUTH PAGES (Login / Register)
+   Both pages share this one card layout - a centered white card on the
+   same light background used elsewhere. Reuses .container, .btn-nav
+   colors, and the site's green/amber palette so it doesn't feel new.
+   ========================================= */
+.auth-section {
+  padding: 60px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: 6px;
+}
+
+.auth-subtext {
+  color: #6b7280;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+}
+
+/* Stack every label above its input - simplest, most readable form layout */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="tel"],
+.auth-form input[type="password"] {
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  margin-bottom: 18px;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: #166534;
+}
+
+.forgot-link {
+  align-self: flex-end;
+  font-size: 0.85rem;
+  color: #166534;
+  margin-bottom: 18px;
+  margin-top: -8px;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+/* Role choice on the Register page */
+.role-fieldset {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+
+.role-fieldset legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  padding: 0 4px;
+}
+
+.role-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: #374151;
+  margin-top: 8px;
+}
+
+.role-option input {
+  margin: 0;
+}
+
+.btn-auth {
+  background-color: #166534;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-auth:hover {
+  background-color: #14532d;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.auth-switch a {
+  color: #166534;
+  font-weight: 600;
+}
+
+.auth-switch a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================
+   8. RESPONSIVE BREAKPOINTS
+   Media queries let the SAME html adapt to smaller screens.
+   Nothing here is a separate mobile page - just different CSS rules
+   applied below certain widths.
+   ========================================= */
+
+/* Tablet: 2 columns instead of 3 */
+@media (max-width: 900px) {
+  .equipment-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Phone: 1 column, and the nav/search stack vertically */
+@media (max-width: 600px) {
+  .equipment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .search-form {
+    flex-direction: column;
+  }
+
+  .hero h1 {
+    font-size: 1.6rem;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
