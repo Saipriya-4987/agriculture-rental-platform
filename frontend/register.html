@@ -14,7 +14,7 @@
       <a href="index.html" class="logo">🌾 AgriRent</a>
       <nav class="main-nav">
         <a href="index.html">Home</a>
-        <a href="#">Browse Equipment</a>
+        <a href="equipment-list.html">Browse Equipment</a>
         <a href="login.html">Login</a>
         <a href="register.html" class="btn-nav active">Register</a>
       </nav>
@@ -32,7 +32,12 @@
           <h1>Create your AgriRent account</h1>
           <p class="auth-subtext">Register as a Farmer to rent equipment, or an Owner to list it.</p>
 
-          <form class="auth-form" action="#">
+          <!-- Filled in by js/main.js: overall "please fix the form" /
+               "Registration form is valid." message. Empty until the
+               form is submitted once. -->
+          <p id="register-message" class="form-message" aria-live="polite"></p>
+
+          <form class="auth-form" id="register-form" action="#">
             <label for="reg-name">Full Name</label>
             <input type="text" id="reg-name" name="name" placeholder="e.g. Ramesh Naidu">
 
@@ -76,6 +81,8 @@
       <p>&copy; 2026 AgriRent. Built as a learning project.</p>
     </div>
   </footer>
+
+  <script src="js/main.js"></script>
 
 </body>
 </html>

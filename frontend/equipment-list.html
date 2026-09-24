@@ -3,50 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgriRent - Find Farm Equipment to Rent</title>
+  <title>Browse Equipment - AgriRent</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-  <!-- ===== HEADER =====
-       <header> holds the logo and the main site navigation.
-       It appears on every page, so it goes at the very top. -->
+  <!-- Same header as the other pages, so the site feels like one product -->
   <header class="site-header">
     <div class="container header-inner">
       <a href="index.html" class="logo">🌾 AgriRent</a>
-
-      <!-- <nav> is a semantic tag that tells the browser (and screen readers)
-           "this block of links is site navigation", not just random text. -->
       <nav class="main-nav">
-        <a href="index.html" class="active">Home</a>
-        <a href="equipment-list.html">Browse Equipment</a>
+        <a href="index.html">Home</a>
+        <a href="equipment-list.html" class="active">Browse Equipment</a>
         <a href="login.html">Login</a>
         <a href="register.html" class="btn-nav">Register</a>
       </nav>
     </div>
   </header>
 
-  <!-- ===== MAIN =====
-       <main> wraps the one primary block of content unique to THIS page.
-       There should only ever be one <main> per page. -->
   <main>
 
-    <!-- HERO / SEARCH SECTION
-         This is the first thing a Farmer or Guest sees: a short pitch
-         plus a search form (FR-DSC-01 keyword search, FR-DSC-02 category filter). -->
-    <section class="hero">
+    <!-- EQUIPMENT LIST PAGE (TRD 10.2 "/equipment", TRD 12 M1):
+         a dedicated browsable results page, separate from the Home hero.
+         Same filter fields as Home (FR-DSC-01/02) - static only, no JS yet. -->
+    <section class="list-filter-bar">
       <div class="container">
-        <h1>Rent farm equipment from owners near you</h1>
-        <p class="hero-subtext">
-          Tractors, harvesters, tillers and more &mdash; find what you need,
-          check availability, and book in a few steps.
-        </p>
+        <h1>Browse Equipment</h1>
+        <p class="page-subtext">All listed equipment. Use the filters below to narrow your search.</p>
 
-        <!-- M2 step 1: this form is now wired up to js/main.js. -->
-        <form class="search-form" id="search-form" action="#">
+        <form class="search-form" action="#">
           <input
             type="search"
-            id="search-keyword"
             name="keyword"
             placeholder="Search equipment, e.g. 'tractor'"
             aria-label="Search equipment"
@@ -62,9 +49,6 @@
             <option value="other">Other</option>
           </select>
 
-          <!-- Static state filter. User picks the state they're staying in /
-               need the equipment in; equipment cards already show their own
-               state so the relationship is visible even before this filters anything. -->
           <select name="state" aria-label="Filter by state">
             <option value="">Select your state</option>
             <option value="andhra-pradesh">Andhra Pradesh</option>
@@ -79,61 +63,39 @@
             <option value="rajasthan">Rajasthan</option>
           </select>
 
-          <!-- Location-filter step: District and Village/City depend on the
-               State selected above and are populated by js/main.js (small
-               hardcoded demo dataset, not a full India dataset). They start
-               with just a placeholder option until a State (and District)
-               is chosen. -->
-          <select name="district" aria-label="Filter by district">
-            <option value="">Select district</option>
-          </select>
-
-          <select name="village" aria-label="Filter by village or city">
-            <option value="">Select village/city</option>
-          </select>
-
           <button type="submit">Search</button>
 
-          <!-- FR-DSC-02 (CORE basic filters): price range and available dates.
-               Static only for M1 - no filtering logic until M2. -->
           <div class="filters-row">
             <div class="filter-group">
-              <label for="price-min">Price Range (&#8377;/day)</label>
+              <label for="list-price-min">Price Range (&#8377;/day)</label>
               <div class="range-inputs">
-                <input type="number" id="price-min" name="price_min" placeholder="Min" min="0">
+                <input type="number" id="list-price-min" name="price_min" placeholder="Min" min="0">
                 <span>&ndash;</span>
-                <input type="number" id="price-max" name="price_max" placeholder="Max" min="0">
+                <input type="number" id="list-price-max" name="price_max" placeholder="Max" min="0">
               </div>
             </div>
 
             <div class="filter-group">
-              <label for="date-from">Available From</label>
-              <input type="date" id="date-from" name="date_from" aria-label="Available from">
+              <label for="list-date-from">Available From</label>
+              <input type="date" id="list-date-from" name="date_from" aria-label="Available from">
             </div>
 
             <div class="filter-group">
-              <label for="date-to">Available Until</label>
-              <input type="date" id="date-to" name="date_to" aria-label="Available until">
+              <label for="list-date-to">Available Until</label>
+              <input type="date" id="list-date-to" name="date_to" aria-label="Available until">
             </div>
           </div>
         </form>
-
-        <!-- M2 step 1: filled in by js/main.js when the form is submitted. -->
-        <p id="search-message" class="search-message"></p>
       </div>
     </section>
 
-    <!-- EQUIPMENT LISTING SECTION
-         The list of available equipment (FR-DSC-03: text version).
-         Data below is hardcoded/mock for M1 - no backend yet. -->
+    <!-- Results grid - reuses the same .equipment-card pattern as the
+         Home page, with more mock listings since this is the full browse page. -->
     <section class="equipment-section">
       <div class="container">
-        <h2>Available Equipment</h2>
+        <h2>9 results</h2>
 
-        <!-- Each equipment listing is one <article> because it is a
-             self-contained piece of content that would still make sense
-             on its own (e.g. shared or listed elsewhere). -->
-        <div class="equipment-grid" id="equipment-grid">
+        <div class="equipment-grid">
 
           <article class="equipment-card">
             <img src="https://placehold.co/400x250?text=Tractor" alt="Mahindra 575 DI tractor in a field">
@@ -142,6 +104,7 @@
               <h3>Mahindra 575 DI</h3>
               <p class="location">📍 Andhra Pradesh · Anantapur</p>
               <p class="price">₹1,200 <span>/ day</span></p>
+              <p class="availability-note">Available from 01 Oct</p>
               <a href="equipment-details.html" class="btn-view">View Details</a>
             </div>
           </article>
@@ -153,7 +116,8 @@
               <h3>John Deere S680 Combine</h3>
               <p class="location">📍 Telangana · Warangal</p>
               <p class="price">₹4,500 <span>/ day</span></p>
-              <a href="#" class="btn-view">View Details</a>
+              <p class="availability-note">Available from 03 Oct</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
             </div>
           </article>
 
@@ -164,7 +128,8 @@
               <h3>Rotavator Heavy Duty 6ft</h3>
               <p class="location">📍 Karnataka · Bellary</p>
               <p class="price">₹600 <span>/ day</span></p>
-              <a href="#" class="btn-view">View Details</a>
+              <p class="availability-note">Available now</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
             </div>
           </article>
 
@@ -175,7 +140,8 @@
               <h3>9-Row Seed Drill</h3>
               <p class="location">📍 Tamil Nadu · Coimbatore</p>
               <p class="price">₹450 <span>/ day</span></p>
-              <a href="#" class="btn-view">View Details</a>
+              <p class="availability-note">Available from 05 Oct</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
             </div>
           </article>
 
@@ -186,7 +152,8 @@
               <h3>Tractor-Mounted Boom Sprayer</h3>
               <p class="location">📍 Maharashtra · Nagpur</p>
               <p class="price">₹350 <span>/ day</span></p>
-              <a href="#" class="btn-view">View Details</a>
+              <p class="availability-note">Available now</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
             </div>
           </article>
 
@@ -197,7 +164,44 @@
               <h3>Swaraj 744 FE</h3>
               <p class="location">📍 Telangana · Nizamabad</p>
               <p class="price">₹1,000 <span>/ day</span></p>
-              <a href="#" class="btn-view">View Details</a>
+              <p class="availability-note">Available from 08 Oct</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
+            </div>
+          </article>
+
+          <article class="equipment-card">
+            <img src="https://placehold.co/400x250?text=Tiller+2" alt="Cultivator attachment">
+            <div class="card-body">
+              <span class="tag">Tiller</span>
+              <h3>Disc Harrow Cultivator</h3>
+              <p class="location">📍 Karnataka · Raichur</p>
+              <p class="price">₹500 <span>/ day</span></p>
+              <p class="availability-note">Available now</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
+            </div>
+          </article>
+
+          <article class="equipment-card">
+            <img src="https://placehold.co/400x250?text=Seeder+2" alt="Precision planter machine">
+            <div class="card-body">
+              <span class="tag">Seeder</span>
+              <h3>Precision Planter 4-Row</h3>
+              <p class="location">📍 Andhra Pradesh · Guntakal</p>
+              <p class="price">₹550 <span>/ day</span></p>
+              <p class="availability-note">Available from 12 Oct</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
+            </div>
+          </article>
+
+          <article class="equipment-card">
+            <img src="https://placehold.co/400x250?text=Sprayer+2" alt="Handheld motorized sprayer">
+            <div class="card-body">
+              <span class="tag">Sprayer</span>
+              <h3>Knapsack Power Sprayer</h3>
+              <p class="location">📍 Andhra Pradesh · Anantapur</p>
+              <p class="price">₹200 <span>/ day</span></p>
+              <p class="availability-note">Available now</p>
+              <a href="equipment-details.html" class="btn-view">View Details</a>
             </div>
           </article>
 
@@ -207,14 +211,11 @@
 
   </main>
 
-  <!-- ===== FOOTER =====
-       Simple, unchanging content that belongs on every page. -->
   <footer class="site-footer">
     <div class="container">
       <p>&copy; 2026 AgriRent. Built as a learning project.</p>
     </div>
   </footer>
 
-  <script src="js/main.js"></script>
 </body>
 </html>

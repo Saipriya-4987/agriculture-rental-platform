@@ -1,0 +1,90 @@
+/* M3 step 2: just enough shared styling for the Header/Footer/Layout to
+   look clean - the same colors/classes as frontend/css/styles.css, not a
+   new color system, and not the full stylesheet (that migration comes
+   in a later M3 step). */
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f2937;
+  background-color: #f9fafb;
+  line-height: 1.5;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Centers page content and stops it stretching edge-to-edge, same as
+   frontend/css/styles.css's .container. */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ---- Header ---- */
+.site-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #166534;
+}
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.main-nav a {
+  font-weight: 500;
+  color: #374151;
+}
+
+.main-nav a.active {
+  color: #166534;
+  font-weight: 700;
+}
+
+.main-nav a:hover {
+  color: #166534;
+}
+
+.btn-nav {
+  background-color: #166534;
+  color: #ffffff !important;
+  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+.btn-nav:hover {
+  background-color: #14532d;
+}
+
+/* ---- Footer ---- */
+.site-footer {
+  background-color: #111827;
+  color: #9ca3af;
+  text-align: center;
+  padding: 20px 0;
+  font-size: 0.9rem;
+}
+
+/* ---- Placeholder main content (App.jsx) ---- */
+main p.container {
+  padding-top: 32px;
+  padding-bottom: 32px;
+}

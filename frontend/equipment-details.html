@@ -14,7 +14,7 @@
       <a href="index.html" class="logo">🌾 AgriRent</a>
       <nav class="main-nav">
         <a href="index.html">Home</a>
-        <a href="#">Browse Equipment</a>
+        <a href="equipment-list.html">Browse Equipment</a>
         <a href="login.html">Login</a>
         <a href="register.html" class="btn-nav">Register</a>
       </nav>
@@ -86,6 +86,28 @@
                 <li>25 Oct 2026 &ndash; 31 Oct 2026</li>
               </ul>
             </div>
+
+            <!-- RENTAL/BOOKING REQUEST FORM (frontend-only demo, M2):
+                 client-side date validation + a success message only -
+                 no real booking, payment, or backend (that's M11).
+                 Reuses the same .auth-form / .btn-auth / .form-message /
+                 .field-error markup and CSS already used by Login and
+                 Register, filled in by js/main.js below. -->
+            <div class="detail-block">
+              <h2>Request to Rent</h2>
+
+              <p id="rental-message" class="form-message" aria-live="polite"></p>
+
+              <form class="auth-form" id="rental-form" action="#">
+                <label for="rental-from">Rental From</label>
+                <input type="date" id="rental-from" name="rental_from" aria-label="Rental from">
+
+                <label for="rental-until">Rental Until</label>
+                <input type="date" id="rental-until" name="rental_until" aria-label="Rental until">
+
+                <button type="submit" class="btn-auth">Request to Rent</button>
+              </form>
+            </div>
           </div>
 
         </div>
@@ -118,6 +140,8 @@
       <p>&copy; 2026 AgriRent. Built as a learning project.</p>
     </div>
   </footer>
+
+  <script src="js/main.js"></script>
 
 </body>
 </html>

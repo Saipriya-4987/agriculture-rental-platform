@@ -14,7 +14,7 @@
       <a href="index.html" class="logo">🌾 AgriRent</a>
       <nav class="main-nav">
         <a href="index.html">Home</a>
-        <a href="#">Browse Equipment</a>
+        <a href="equipment-list.html">Browse Equipment</a>
         <a href="login.html" class="active">Login</a>
         <a href="register.html" class="btn-nav">Register</a>
       </nav>
@@ -31,7 +31,11 @@
           <h1>Log in to AgriRent</h1>
           <p class="auth-subtext">Welcome back. Enter your details to continue.</p>
 
-          <form class="auth-form" action="#">
+          <!-- Filled in by js/main.js: "please fix" / "Login form is
+               valid." message. Empty until the form is submitted once. -->
+          <p id="login-message" class="form-message" aria-live="polite"></p>
+
+          <form class="auth-form" id="login-form" action="#">
             <label for="login-identifier">Email or Phone Number</label>
             <input type="text" id="login-identifier" name="identifier" placeholder="you@example.com or 9876543210">
 
@@ -57,6 +61,8 @@
       <p>&copy; 2026 AgriRent. Built as a learning project.</p>
     </div>
   </footer>
+
+  <script src="js/main.js"></script>
 
 </body>
 </html>
