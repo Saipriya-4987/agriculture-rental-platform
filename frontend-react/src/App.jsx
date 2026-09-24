@@ -1,12 +1,12 @@
 import Layout from './components/Layout.jsx'
+import Home from './pages/Home.jsx'
 
-// M3 step 2: App now renders the shared Layout (Header + Footer).
-// The Home page itself isn't migrated yet, so the main content is just
-// a placeholder for now - that comes in a later M3 step.
+// M3 final state: Layout (shared Header + Footer) wrapping the Home page.
+// There is no routing yet - React Router / page switching is M4's job.
 function App() {
   return (
     <Layout>
-      <p className="container">AgriRent React application</p>
+      <Home />
     </Layout>
   )
 }
