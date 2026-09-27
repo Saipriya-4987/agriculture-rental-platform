@@ -9,7 +9,13 @@ class AppError extends Error {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'agrirent-default-super-secret-jwt-key'
+const getJwtSecret = () => {
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable must be set in production.')
+  }
+  return process.env.JWT_SECRET || 'agrirent-default-super-secret-jwt-key'
+}
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^\+?\d{10,15}$/
 
@@ -168,7 +174,7 @@ const login = async (req, res, next) => {
         role: user.role,
         email: user.email
       },
-      JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: '7d' }
     )
 

@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken')
 
-const JWT_SECRET = process.env.JWT_SECRET || 'agrirent-default-super-secret-jwt-key'
+const getJwtSecret = () => {
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable must be set in production.')
+  }
+  return process.env.JWT_SECRET || 'agrirent-default-super-secret-jwt-key'
+}
 
 /**
  * Authentication middleware that verifies JWT in the Authorization header.
@@ -24,7 +29,7 @@ const requireAuth = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET)
+    const decoded = jwt.verify(token, getJwtSecret())
 
     // Attach authenticated user information to request
     req.user = {
