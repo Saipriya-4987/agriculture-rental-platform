@@ -47,6 +47,33 @@ const requireAuth = (req, res, next) => {
   }
 }
 
+/**
+ * Role-based authorization middleware.
+ * Reads authenticated user role from req.user and checks against allowed roles.
+ * Usage: requireRole('FARMER'), requireRole('OWNER', 'ADMIN'), etc.
+ */
+const requireRole = (...roles) => {
+  const allowedRoles = roles.flat().map(r => String(r).toUpperCase())
+
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({
+        error: 'Authentication required. No user context found.'
+      })
+    }
+
+    const userRole = String(req.user.role).toUpperCase()
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        error: `Forbidden. Role '${req.user.role}' is not authorized to access this resource.`
+      })
+    }
+
+    next()
+  }
+}
+
 module.exports = {
-  requireAuth
+  requireAuth,
+  requireRole
 }

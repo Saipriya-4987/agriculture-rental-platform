@@ -280,6 +280,23 @@ export function isAuthenticated(): boolean {
   return Boolean(getAuthToken())
 }
 
+/**
+ * Retrieve the current authenticated user's role.
+ */
+export function getUserRole(): string | null {
+  const user = getAuthUser()
+  return user?.role || null
+}
+
+/**
+ * Check if the currently authenticated user possesses one of the specified roles.
+ */
+export function hasRole(...roles: string[]): boolean {
+  const userRole = getUserRole()
+  if (!userRole) return false
+  return roles.map(r => r.toUpperCase()).includes(userRole.toUpperCase())
+}
+
 export const authApi = {
   register: registerUser,
   login: loginUser,
@@ -287,6 +304,8 @@ export const authApi = {
   setAuthSession,
   getAuthToken,
   getAuthUser,
+  getUserRole,
+  hasRole,
   clearAuthSession,
   isAuthenticated,
 }
