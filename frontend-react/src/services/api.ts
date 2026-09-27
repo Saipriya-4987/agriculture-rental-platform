@@ -90,6 +90,34 @@ export interface LoginResponse {
   user: SafeUser
 }
 
+export interface CreateBookingData {
+  equipmentId: number
+  startDate: string
+  endDate: string
+  handoverMethod?: 'PICKUP' | 'DELIVERY' | string
+}
+
+export interface Booking {
+  id: number
+  equipmentId: number
+  farmerId: number
+  startDate: string
+  endDate: string
+  totalDays: number
+  totalAmount: number
+  handoverMethod: 'PICKUP' | 'DELIVERY' | string
+  status: string
+  rejectionReason?: string | null
+  createdAt?: string
+  updatedAt?: string
+  equipment?: Partial<Equipment>
+}
+
+export interface CreateBookingResponse {
+  message: string
+  booking: Booking
+}
+
 /**
  * Custom API Error class with HTTP status code and optional details.
  */
@@ -310,6 +338,30 @@ export const authApi = {
   isAuthenticated,
 }
 
+/**
+ * Create a new booking request for an equipment.
+ * POST /api/bookings
+ */
+export async function createBooking(data: CreateBookingData): Promise<CreateBookingResponse> {
+  return apiRequest<CreateBookingResponse>('/bookings', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Fetch the authenticated farmer's bookings.
+ * GET /api/bookings/my
+ */
+export async function getMyBookings(): Promise<Booking[]> {
+  return apiRequest<Booking[]>('/bookings/my')
+}
+
+export const bookingApi = {
+  create: createBooking,
+  getMy: getMyBookings,
+}
+
 export const equipmentApi = {
   getAll: getEquipmentList,
   getById: getEquipmentById,
@@ -321,4 +373,5 @@ export const equipmentApi = {
 export default {
   ...equipmentApi,
   ...authApi,
+  ...bookingApi,
 }

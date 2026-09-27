@@ -1,6 +1,14 @@
 import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getEquipmentById, deleteEquipment, hasRole, type Equipment } from '../services/api'
+import {
+  getEquipmentById,
+  deleteEquipment,
+  hasRole,
+  createBooking,
+  isAuthenticated,
+  getUserRole,
+  type Equipment,
+} from '../services/api'
 
 interface Review {
   stars: string
@@ -61,6 +69,8 @@ function EquipmentDetails() {
 
   const [rentalFrom, setRentalFrom] = useState<string>('')
   const [rentalUntil, setRentalUntil] = useState<string>('')
+  const [handoverMethod, setHandoverMethod] = useState<'PICKUP' | 'DELIVERY'>('PICKUP')
+  const [isBookingSubmitting, setIsBookingSubmitting] = useState<boolean>(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
 
@@ -116,16 +126,41 @@ function EquipmentDetails() {
     return newErrors
   }
 
-  function handleRentalSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleRentalSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const newErrors = validateRentalForm()
     setErrors(newErrors)
 
-    if (Object.keys(newErrors).length === 0) {
-      setMessage({ text: 'Rental request submitted successfully.', type: 'success' })
-    } else {
+    if (Object.keys(newErrors).length > 0) {
       setMessage({ text: 'Please fix the highlighted fields below.', type: 'error' })
+      return
+    }
+
+    if (!equipment) return
+
+    try {
+      setIsBookingSubmitting(true)
+      setMessage(null)
+
+      const response = await createBooking({
+        equipmentId: equipment.id,
+        startDate: rentalFrom,
+        endDate: rentalUntil,
+        handoverMethod,
+      })
+
+      setMessage({
+        text: `Booking request placed successfully! Booking ID #${response.booking.id} (Status: ${response.booking.status}). Total: ₹${response.booking.totalAmount.toLocaleString('en-IN')}.`,
+        type: 'success',
+      })
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? err.message : 'Failed to submit booking request.',
+        type: 'error',
+      })
+    } finally {
+      setIsBookingSubmitting(false)
     }
   }
 
@@ -217,6 +252,18 @@ function EquipmentDetails() {
     availabilityList = [`${equipment.availabilityFrom} – ${equipment.availabilityTo}`]
   }
 
+  let calculatedDays = 0
+  let calculatedTotal = 0
+  if (rentalFrom && rentalUntil && rentalUntil >= rentalFrom && equipment) {
+    const start = new Date(rentalFrom + 'T00:00:00Z')
+    const end = new Date(rentalUntil + 'T00:00:00Z')
+    const diffMs = end.getTime() - start.getTime()
+    if (!isNaN(diffMs) && diffMs >= 0) {
+      calculatedDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1
+      calculatedTotal = calculatedDays * equipment.pricePerDay
+    }
+  }
+
   return (
     <>
       <section className="py-8 pb-12">
@@ -278,46 +325,119 @@ function EquipmentDetails() {
               </div>
 
               {/* RENTAL/BOOKING REQUEST FORM */}
-              <div id="request-section" className="mb-6">
-                <h2 className="text-[1.1rem] mb-2">Request to Rent</h2>
+              <div id="request-section" className="mb-6 bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <h2 className="text-[1.2rem] font-bold text-gray-900 mb-2">Request to Rent</h2>
 
                 {message && (
-                  <p className={`p-3 rounded-md mb-4 ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
+                  <div
+                    className={`p-3.5 rounded-lg mb-4 text-sm font-medium ${
+                      message.type === 'success'
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}
+                    aria-live="polite"
+                  >
                     {message.text}
-                  </p>
+                  </div>
                 )}
 
-                <form className="flex flex-col" onSubmit={handleRentalSubmit}>
-                  <div className="mb-4">
-                    <label htmlFor="rental-from" className="text-sm font-semibold mb-1.5 block">Rental From</label>
-                    <input
-                      type="date"
-                      id="rental-from"
-                      name="rental_from"
-                      aria-label="Rental from"
-                      value={rentalFrom}
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalFrom(event.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                    />
-                    {errors.rentalFrom && <span className="text-red-600 text-sm block mt-1">{errors.rentalFrom}</span>}
+                {!isAuthenticated() ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 text-center">
+                    <p className="font-semibold text-gray-800 mb-1">Want to rent this machine?</p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Please log in with your <strong>Farmer</strong> account to select rental dates and submit a booking request.
+                    </p>
+                    <Link
+                      to="/login"
+                      className="inline-block px-5 py-2.5 bg-green-800 text-white font-semibold text-sm rounded-md hover:bg-green-900 transition-colors"
+                    >
+                      Log in to Book
+                    </Link>
                   </div>
-
-                  <div className="mb-4">
-                    <label htmlFor="rental-until" className="text-sm font-semibold mb-1.5 block">Rental Until</label>
-                    <input
-                      type="date"
-                      id="rental-until"
-                      name="rental_until"
-                      aria-label="Rental until"
-                      value={rentalUntil}
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalUntil(event.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-md w-full"
-                    />
-                    {errors.rentalUntil && <span className="text-red-600 text-sm block mt-1">{errors.rentalUntil}</span>}
+                ) : getUserRole() !== 'FARMER' ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-600">
+                    <p>
+                      Logged in as <strong className="text-gray-800">{getUserRole()}</strong>. Rental bookings can only be requested by Farmer accounts.
+                    </p>
                   </div>
+                ) : (
+                  <form className="flex flex-col gap-4" onSubmit={handleRentalSubmit}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="rental-from" className="text-sm font-semibold mb-1.5 block text-gray-700">
+                          Rental Start Date
+                        </label>
+                        <input
+                          type="date"
+                          id="rental-from"
+                          name="rental_from"
+                          aria-label="Rental from"
+                          value={rentalFrom}
+                          onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalFrom(event.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-green-600"
+                        />
+                        {errors.rentalFrom && (
+                          <span className="text-red-600 text-xs block mt-1">{errors.rentalFrom}</span>
+                        )}
+                      </div>
 
-                  <button type="submit" className="px-4 py-2 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer">Request to Rent</button>
-                </form>
+                      <div>
+                        <label htmlFor="rental-until" className="text-sm font-semibold mb-1.5 block text-gray-700">
+                          Rental End Date
+                        </label>
+                        <input
+                          type="date"
+                          id="rental-until"
+                          name="rental_until"
+                          aria-label="Rental until"
+                          value={rentalUntil}
+                          onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalUntil(event.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-green-600"
+                        />
+                        {errors.rentalUntil && (
+                          <span className="text-red-600 text-xs block mt-1">{errors.rentalUntil}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="handover-method" className="text-sm font-semibold mb-1.5 block text-gray-700">
+                        Handover Method
+                      </label>
+                      <select
+                        id="handover-method"
+                        value={handoverMethod}
+                        onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                          setHandoverMethod(event.target.value as 'PICKUP' | 'DELIVERY')
+                        }
+                        className="px-3 py-2 border border-gray-300 rounded-md w-full bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-600"
+                      >
+                        <option value="PICKUP">Self Pickup (Collect from Owner location)</option>
+                        <option value="DELIVERY">Delivery to Farm (Coordinated with Owner)</option>
+                      </select>
+                    </div>
+
+                    {calculatedDays > 0 && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-900 flex justify-between items-center">
+                        <div>
+                          <span className="font-semibold">{calculatedDays} day{calculatedDays > 1 ? 's' : ''}</span>
+                          <span className="text-xs text-green-700 ml-1.5">(@ ₹{equipment.pricePerDay.toLocaleString('en-IN')}/day)</span>
+                        </div>
+                        <div className="text-base font-bold text-green-900">
+                          Total: ₹{calculatedTotal.toLocaleString('en-IN')}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isBookingSubmitting}
+                      className="w-full py-2.5 px-4 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isBookingSubmitting ? 'Submitting Request...' : 'Confirm & Request to Rent'}
+                    </button>
+                  </form>
+                )}
               </div>
 
               {/* OWNER ACTIONS: Edit and Delete (Accessible to OWNER role) */}

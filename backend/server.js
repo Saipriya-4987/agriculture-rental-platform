@@ -3,6 +3,7 @@ const express = require('express')
 const cors = require('cors')
 const equipmentRoutes = require('./routes/equipmentRoutes')
 const authRoutes = require('./routes/authRoutes')
+const bookingRoutes = require('./routes/bookingRoutes')
 const { errorHandler } = require('./middleware/errorHandler')
 const { requestLogger } = require('./middleware/requestLogger')
 
@@ -27,6 +28,9 @@ app.use('/api/auth', authRoutes)
 
 // Equipment routes
 app.use('/api/equipment', equipmentRoutes)
+
+// Booking routes
+app.use('/api/bookings', bookingRoutes)
 
 // 404 handler for all unknown routes (must be before errorHandler)
 app.use((req, res, next) => {
