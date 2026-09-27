@@ -1,6 +1,50 @@
 import { useState } from 'react'
-import EquipmentCard from '../components/EquipmentCard.jsx'
+import type { ChangeEvent, ComponentProps, FormEvent } from 'react'
+import EquipmentCard from '../components/EquipmentCard'
 import equipmentData, { locationData } from '../data/equipmentData.js'
+
+// Reuse the card's own equipment type (the fields <EquipmentCard> reads)
+// and add the filter-only fields that exist on every item in
+// equipmentData.js, instead of re-declaring the card fields here.
+type CardEquipment = ComponentProps<typeof EquipmentCard>['equipment']
+
+interface HomeEquipment extends CardEquipment {
+  categoryValue: string
+  stateValue: string
+  districtValue: string
+  villageValue: string
+  availabilityFrom: string
+  availabilityTo: string
+}
+
+// Shape of the State -> District -> Village hierarchy in locationData.
+interface VillageOption {
+  value: string
+  label: string
+}
+
+interface DistrictData {
+  label: string
+  villages: VillageOption[]
+}
+
+type LocationData = Record<string, Record<string, DistrictData>>
+
+// equipmentData.js is plain JS, so its keys are inferred as fixed literals;
+// this lets Home look districts up by whichever state string is selected.
+const locations: LocationData = locationData
+
+interface Filters {
+  keyword: string
+  category: string
+  state: string
+  district: string
+  village: string
+  priceMin: string
+  priceMax: string
+  dateFrom: string
+  dateTo: string
+}
 
 // M3 step 3 + step 4: Home page component.
 // Based on the <section class="hero"> + <section class="equipment-section">
@@ -15,7 +59,7 @@ import equipmentData, { locationData } from '../data/equipmentData.js'
 // no separate "apply" step, and clearing a field naturally restores the
 // equipment that field was narrowing.
 function Home() {
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<Filters>({
     keyword: '',
     category: '',
     state: '',
@@ -29,7 +73,7 @@ function Home() {
 
   // Generic change handler for most fields: reads the field's `name` and
   // updates just that key in filters state.
-  function handleFilterChange(event) {
+  function handleFilterChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target
     setFilters((previousFilters) => ({
       ...previousFilters,
@@ -41,7 +85,7 @@ function Home() {
   // (now possibly invalid) District and Village; changing District clears
   // Village. Same reset behaviour as main.js's stateSelect/districtSelect
   // 'change' listeners, just expressed as state updates.
-  function handleStateChange(event) {
+  function handleStateChange(event: ChangeEvent<HTMLSelectElement>) {
     const { value } = event.target
     setFilters((previousFilters) => ({
       ...previousFilters,
@@ -51,7 +95,7 @@ function Home() {
     }))
   }
 
-  function handleDistrictChange(event) {
+  function handleDistrictChange(event: ChangeEvent<HTMLSelectElement>) {
     const { value } = event.target
     setFilters((previousFilters) => ({
       ...previousFilters,
@@ -62,8 +106,8 @@ function Home() {
 
   // Options for the District select, driven by the currently selected
   // State (empty/unknown state = no districts yet).
-  const districtOptions = filters.state && locationData[filters.state]
-    ? Object.entries(locationData[filters.state]).map(([value, data]) => ({
+  const districtOptions = filters.state && locations[filters.state]
+    ? Object.entries(locations[filters.state]).map(([value, data]) => ({
         value,
         label: data.label,
       }))
@@ -71,14 +115,14 @@ function Home() {
 
   // Options for the Village/City select, driven by the currently selected
   // State AND District.
-  const stateData = locationData[filters.state]
+  const stateData = locations[filters.state]
   const districtData = stateData ? stateData[filters.district] : undefined
   const villageOptions = districtData ? districtData.villages : []
 
   // Placeholder submit handler: filtering already runs live via the
   // controlled fields above, so submitting the form just stops the page
   // from reloading (action="#" behaviour).
-  function handleSearchSubmit(event) {
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
   }
 
@@ -87,7 +131,7 @@ function Home() {
   // filter is ignored when left empty/unselected, otherwise must match
   // exactly (category/state/district/village) or fall within range
   // (price, availability window).
-  function getFilteredEquipment() {
+  function getFilteredEquipment(): HomeEquipment[] {
     const lowerKeyword = filters.keyword.trim().toLowerCase()
 
     const rawMin = filters.priceMin.trim()
@@ -95,7 +139,7 @@ function Home() {
     const minPrice = rawMin === '' ? null : Number(rawMin)
     const maxPrice = rawMax === '' ? null : Number(rawMax)
 
-    return equipmentData.filter((item) => {
+    return equipmentData.filter((item: HomeEquipment) => {
       const nameMatches = item.name.toLowerCase().includes(lowerKeyword)
       const categoryTextMatches = item.category.toLowerCase().includes(lowerKeyword)
       const keywordMatches = lowerKeyword === '' || nameMatches || categoryTextMatches
@@ -131,15 +175,15 @@ function Home() {
 
   return (
     <>
-      <section className="hero">
-        <div className="container">
-          <h1>Rent farm equipment from owners near you</h1>
-          <p className="hero-subtext">
+      <section className="bg-green-800 text-white text-center py-[60px]">
+        <div className="max-w-[1100px] mx-auto px-5">
+          <h1 className="text-[2.2rem] mb-3">Rent farm equipment from owners near you</h1>
+          <p className="text-[1.1rem] text-green-100 max-w-[600px] mx-auto mb-8">
             Tractors, harvesters, tillers and more &mdash; find what you need,
             check availability, and book in a few steps.
           </p>
 
-          <form className="search-form" onSubmit={handleSearchSubmit}>
+          <form className="flex flex-wrap justify-center gap-3 max-w-[820px] mx-auto" onSubmit={handleSearchSubmit}>
             <input
               type="search"
               name="keyword"
@@ -147,6 +191,7 @@ function Home() {
               aria-label="Search equipment"
               value={filters.keyword}
               onChange={handleFilterChange}
+              className="flex-1 min-w-[220px] px-[14px] py-3 border-none rounded-md text-base"
             />
 
             <select
@@ -154,6 +199,7 @@ function Home() {
               aria-label="Filter by category"
               value={filters.category}
               onChange={handleFilterChange}
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
             >
               <option value="">All Categories</option>
               <option value="tractor">Tractor</option>
@@ -169,6 +215,7 @@ function Home() {
               aria-label="Filter by state"
               value={filters.state}
               onChange={handleStateChange}
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
             >
               <option value="">Select your state</option>
               <option value="andhra-pradesh">Andhra Pradesh</option>
@@ -192,6 +239,7 @@ function Home() {
               aria-label="Filter by district"
               value={filters.district}
               onChange={handleDistrictChange}
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
             >
               <option value="">Select district</option>
               {districtOptions.map((district) => (
@@ -206,6 +254,7 @@ function Home() {
               aria-label="Filter by village or city"
               value={filters.village}
               onChange={handleFilterChange}
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
             >
               <option value="">Select village/city</option>
               {villageOptions.map((village) => (
@@ -215,12 +264,17 @@ function Home() {
               ))}
             </select>
 
-            <button type="submit">Search</button>
+            <button
+              type="submit"
+              className="flex-0 px-6 py-3 border-none rounded-md bg-amber-500 text-white font-bold text-base cursor-pointer hover:bg-amber-600"
+            >
+              Search
+            </button>
 
-            <div className="filters-row">
-              <div className="filter-group">
-                <label htmlFor="price-min">Price Range (&#8377;/day)</label>
-                <div className="range-inputs">
+            <div className="w-full flex flex-wrap justify-center gap-7 mt-[18px]">
+              <div className="flex flex-col items-start">
+                <label htmlFor="price-min" className="text-xs font-semibold text-green-100 mb-1.5">Price Range (&#8377;/day)</label>
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     id="price-min"
@@ -229,8 +283,9 @@ function Home() {
                     min="0"
                     value={filters.priceMin}
                     onChange={handleFilterChange}
+                    className="px-3 py-2.5 border-none rounded-md text-sm w-[120px]"
                   />
-                  <span>&ndash;</span>
+                  <span className="text-green-100">&ndash;</span>
                   <input
                     type="number"
                     id="price-max"
@@ -239,12 +294,13 @@ function Home() {
                     min="0"
                     value={filters.priceMax}
                     onChange={handleFilterChange}
+                    className="px-3 py-2.5 border-none rounded-md text-sm w-[120px]"
                   />
                 </div>
               </div>
 
-              <div className="filter-group">
-                <label htmlFor="date-from">Available From</label>
+              <div className="flex flex-col items-start">
+                <label htmlFor="date-from" className="text-xs font-semibold text-green-100 mb-1.5">Available From</label>
                 <input
                   type="date"
                   id="date-from"
@@ -252,11 +308,12 @@ function Home() {
                   aria-label="Available from"
                   value={filters.dateFrom}
                   onChange={handleFilterChange}
+                  className="flex-0 w-[170px] h-auto px-[14px] py-3 leading-normal border-none rounded-md"
                 />
               </div>
 
-              <div className="filter-group">
-                <label htmlFor="date-to">Available Until</label>
+              <div className="flex flex-col items-start">
+                <label htmlFor="date-to" className="text-xs font-semibold text-green-100 mb-1.5">Available Until</label>
                 <input
                   type="date"
                   id="date-to"
@@ -264,6 +321,7 @@ function Home() {
                   aria-label="Available until"
                   value={filters.dateTo}
                   onChange={handleFilterChange}
+                  className="flex-0 w-[170px] h-auto px-[14px] py-3 leading-normal border-none rounded-md"
                 />
               </div>
             </div>
@@ -271,13 +329,13 @@ function Home() {
         </div>
       </section>
 
-      <section className="equipment-section">
-        <div className="container">
-          <h2>Available Equipment</h2>
+      <section className="py-12">
+        <div className="max-w-[1100px] mx-auto px-5">
+          <h2 className="text-[1.6rem] mb-6">Available Equipment</h2>
 
-          <div className="equipment-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEquipment.length === 0 ? (
-              <p className="no-results">No equipment found</p>
+              <p className="col-span-full text-center text-gray-500 py-8">No equipment found</p>
             ) : (
               filteredEquipment.map((equipment) => (
                 <EquipmentCard key={equipment.id} equipment={equipment} />
