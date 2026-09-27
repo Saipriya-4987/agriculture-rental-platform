@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(255)
+  email         String    @unique @db.VarChar(255)
+  phone         String    @unique @db.VarChar(50)
+  password_hash String    @db.VarChar(255)
+  role          String    @default("FARMER") @db.VarChar(50)
+  status        String    @default("ACTIVE") @db.VarChar(50)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @db.Timestamptz(6)
+  bookings      Booking[]
+  reviews       Review[]
+
+  @@map("users")
+}
+
+model Equipment {
+  id                Int       @id @default(autoincrement())
+  name              String    @db.VarChar(255)
+  category          String    @db.VarChar(100)
+  category_value    String?   @db.VarChar(100)
+  state             String    @db.VarChar(100)
+  state_value       String?   @db.VarChar(100)
+  district          String?   @db.VarChar(100)
+  district_value    String?   @db.VarChar(100)
+  village           String?   @db.VarChar(100)
+  village_value     String?   @db.VarChar(100)
+  city              String    @db.VarChar(100)
+  price_per_day     Decimal   @db.Decimal(10, 2)
+  image             String?
+  image_alt         String?   @db.VarChar(255)
+  availability_from DateTime? @db.Date
+  availability_to   DateTime? @db.Date
+  owner             String?   @db.VarChar(255)
+  rating            Decimal?  @default(0) @db.Decimal(3, 2)
+  rating_count      Int?      @default(0)
+  description       String?
+  features          String[]
+  availability      String[]
+  created_at        DateTime? @default(now()) @db.Timestamptz(6)
+  bookings          Booking[]
+  reviews           Review[]
+
+  @@map("equipment")
+}
+
+model Booking {
+  id               Int       @id @default(autoincrement())
+  equipment_id     Int
+  farmer_id        Int
+  start_date       DateTime  @db.Date
+  end_date         DateTime  @db.Date
+  total_days       Int
+  total_amount     Decimal   @db.Decimal(10, 2)
+  handover_method  String    @default("PICKUP") @db.VarChar(50)
+  status           String    @default("PENDING") @db.VarChar(50)
+  rejection_reason String?
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  equipment        Equipment @relation(fields: [equipment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  farmer           User      @relation(fields: [farmer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reviews          Review[]
+
+  @@map("bookings")
+}
+
+model Review {
+  id           Int       @id @default(autoincrement())
+  booking_id   Int
+  reviewer_id  Int
+  equipment_id Int
+  rating       Int       @db.SmallInt
+  comment      String?
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  booking      Booking   @relation(fields: [booking_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  equipment    Equipment @relation(fields: [equipment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reviewer     User      @relation(fields: [reviewer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([booking_id, reviewer_id])
+  @@map("reviews")
+}
