@@ -1,21 +1,8 @@
-import { useState } from 'react'
-import type { ChangeEvent, ComponentProps, FormEvent } from 'react'
+import { useState, useEffect } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import EquipmentCard from '../components/EquipmentCard'
-import equipmentData, { locationData } from '../data/equipmentData.js'
-
-// Reuse the card's own equipment type (the fields <EquipmentCard> reads)
-// and add the filter-only fields that exist on every item in
-// equipmentData.js, instead of re-declaring the card fields here.
-type CardEquipment = ComponentProps<typeof EquipmentCard>['equipment']
-
-interface HomeEquipment extends CardEquipment {
-  categoryValue: string
-  stateValue: string
-  districtValue: string
-  villageValue: string
-  availabilityFrom: string
-  availabilityTo: string
-}
+import { locationData } from '../data/equipmentData.js'
+import { getEquipmentList, type Equipment } from '../services/api'
 
 // Shape of the State -> District -> Village hierarchy in locationData.
 interface VillageOption {
@@ -30,8 +17,6 @@ interface DistrictData {
 
 type LocationData = Record<string, Record<string, DistrictData>>
 
-// equipmentData.js is plain JS, so its keys are inferred as fixed literals;
-// this lets Home look districts up by whichever state string is selected.
 const locations: LocationData = locationData
 
 interface Filters {
@@ -46,19 +31,12 @@ interface Filters {
   dateTo: string
 }
 
-// M3 step 3 + step 4: Home page component.
-// Based on the <section class="hero"> + <section class="equipment-section">
-// markup in frontend/index.html, with the filtering behaviour of
-// frontend/js/main.js's filterEquipmentByKeyword/populateDistrictOptions/
-// populateVillageOptions re-implemented in React (not imported - main.js
-// is never used here).
-//
-// All filter fields are CONTROLLED (useState) and filtering is LIVE: the
-// equipment grid is derived from `filters` on every render via
-// getFilteredEquipment(), so results update as soon as a field changes -
-// no separate "apply" step, and clearing a field naturally restores the
-// equipment that field was narrowing.
+// M3 step 3 + M9 Step 4: Home page component connected to backend API.
 function Home() {
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [filters, setFilters] = useState<Filters>({
     keyword: '',
     category: '',
@@ -71,8 +49,47 @@ function Home() {
     dateTo: '',
   })
 
-  // Generic change handler for most fields: reads the field's `name` and
-  // updates just that key in filters state.
+  useEffect(() => {
+    let ignore = false
+
+    getEquipmentList()
+      .then((data) => {
+        if (!ignore) {
+          setEquipmentList(data)
+          setError(null)
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to load equipment.')
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  function handleRetry() {
+    setLoading(true)
+    setError(null)
+    getEquipmentList()
+      .then((data) => {
+        setEquipmentList(data)
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to load equipment.')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
   function handleFilterChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target
     setFilters((previousFilters) => ({
@@ -81,10 +98,6 @@ function Home() {
     }))
   }
 
-  // State -> District -> Village cascade: changing State clears the
-  // (now possibly invalid) District and Village; changing District clears
-  // Village. Same reset behaviour as main.js's stateSelect/districtSelect
-  // 'change' listeners, just expressed as state updates.
   function handleStateChange(event: ChangeEvent<HTMLSelectElement>) {
     const { value } = event.target
     setFilters((previousFilters) => ({
@@ -104,8 +117,6 @@ function Home() {
     }))
   }
 
-  // Options for the District select, driven by the currently selected
-  // State (empty/unknown state = no districts yet).
   const districtOptions = filters.state && locations[filters.state]
     ? Object.entries(locations[filters.state]).map(([value, data]) => ({
         value,
@@ -113,25 +124,15 @@ function Home() {
       }))
     : []
 
-  // Options for the Village/City select, driven by the currently selected
-  // State AND District.
   const stateData = locations[filters.state]
   const districtData = stateData ? stateData[filters.district] : undefined
   const villageOptions = districtData ? districtData.villages : []
 
-  // Placeholder submit handler: filtering already runs live via the
-  // controlled fields above, so submitting the form just stops the page
-  // from reloading (action="#" behaviour).
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
   }
 
-  // Same filtering rules as frontend/js/main.js's filterEquipmentByKeyword:
-  // keyword matches name OR category (case-insensitive); every other
-  // filter is ignored when left empty/unselected, otherwise must match
-  // exactly (category/state/district/village) or fall within range
-  // (price, availability window).
-  function getFilteredEquipment(): HomeEquipment[] {
+  function getFilteredEquipment(): Equipment[] {
     const lowerKeyword = filters.keyword.trim().toLowerCase()
 
     const rawMin = filters.priceMin.trim()
@@ -139,25 +140,21 @@ function Home() {
     const minPrice = rawMin === '' ? null : Number(rawMin)
     const maxPrice = rawMax === '' ? null : Number(rawMax)
 
-    return equipmentData.filter((item: HomeEquipment) => {
+    return equipmentList.filter((item: Equipment) => {
       const nameMatches = item.name.toLowerCase().includes(lowerKeyword)
       const categoryTextMatches = item.category.toLowerCase().includes(lowerKeyword)
       const keywordMatches = lowerKeyword === '' || nameMatches || categoryTextMatches
 
-      const categoryMatches = filters.category === '' || item.categoryValue === filters.category
-      const stateMatches = filters.state === '' || item.stateValue === filters.state
-      const districtMatches = filters.district === '' || item.districtValue === filters.district
-      const villageMatches = filters.village === '' || item.villageValue === filters.village
+      const categoryMatches = filters.category === '' || (item.categoryValue || item.category.toLowerCase()) === filters.category
+      const stateMatches = filters.state === '' || (item.stateValue || item.state.toLowerCase().replace(/\s+/g, '-')) === filters.state
+      const districtMatches = filters.district === '' || (item.districtValue || (item.district ? item.district.toLowerCase() : '')) === filters.district
+      const villageMatches = filters.village === '' || (item.villageValue || (item.village ? item.village.toLowerCase() : '')) === filters.village
 
       const minPriceMatches = minPrice === null || item.pricePerDay >= minPrice
       const maxPriceMatches = maxPrice === null || item.pricePerDay <= maxPrice
 
-      // Equipment must already be available on/before the requested start
-      // date, and remain available on/after the requested end date - i.e.
-      // its availability window covers the requested range. Dates are
-      // plain "YYYY-MM-DD" strings, so string comparison is enough.
-      const fromMatches = filters.dateFrom === '' || item.availabilityFrom <= filters.dateFrom
-      const toMatches = filters.dateTo === '' || item.availabilityTo >= filters.dateTo
+      const fromMatches = filters.dateFrom === '' || !item.availabilityFrom || item.availabilityFrom <= filters.dateFrom
+      const toMatches = filters.dateTo === '' || !item.availabilityTo || item.availabilityTo >= filters.dateTo
 
       return keywordMatches
         && categoryMatches
@@ -230,10 +227,6 @@ function Home() {
               <option value="rajasthan">Rajasthan</option>
             </select>
 
-            {/* District/Village options come from locationData and cascade
-                off State/District, same demo hierarchy as main.js's
-                LOCATION_DATA (only Andhra Pradesh and Telangana have
-                districts defined - other states show no options yet). */}
             <select
               name="district"
               aria-label="Filter by district"
@@ -333,15 +326,38 @@ function Home() {
         <div className="max-w-[1100px] mx-auto px-5">
           <h2 className="text-[1.6rem] mb-6">Available Equipment</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEquipment.length === 0 ? (
-              <p className="col-span-full text-center text-gray-500 py-8">No equipment found</p>
-            ) : (
-              filteredEquipment.map((equipment) => (
-                <EquipmentCard key={equipment.id} equipment={equipment} />
-              ))
-            )}
-          </div>
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-10 h-10 border-4 border-green-800 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-gray-600 text-base font-medium">Loading available equipment...</p>
+            </div>
+          )}
+
+          {error && !loading && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-6 rounded-lg text-center max-w-[600px] mx-auto mb-8">
+              <p className="font-semibold text-lg mb-1">Unable to Load Equipment</p>
+              <p className="text-sm mb-4">{error}</p>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="px-5 py-2 bg-green-800 text-white rounded-md text-sm font-semibold hover:bg-green-900 transition-colors cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEquipment.length === 0 ? (
+                <p className="col-span-full text-center text-gray-500 py-8">No equipment found</p>
+              ) : (
+                filteredEquipment.map((equipment) => (
+                  <EquipmentCard key={equipment.id} equipment={equipment} />
+                ))
+              )}
+            </div>
+          )}
         </div>
       </section>
     </>
