@@ -44,17 +44,41 @@ function Header() {
 
           {user ? (
             <>
-              {user.role === 'OWNER' && (
+              {user.role === 'FARMER' && (
                 <NavLink
-                  to="/equipment/new"
+                  to="/my-bookings"
                   className={({ isActive }) =>
                     isActive
                       ? 'font-bold text-green-800'
                       : 'font-medium text-gray-700 hover:text-green-800'
                   }
                 >
-                  + List Equipment
+                  My Bookings
                 </NavLink>
+              )}
+              {user.role === 'OWNER' && (
+                <>
+                  <NavLink
+                    to="/owner/bookings"
+                    className={({ isActive }) =>
+                      isActive
+                        ? 'font-bold text-green-800'
+                        : 'font-medium text-gray-700 hover:text-green-800'
+                    }
+                  >
+                    Booking Requests
+                  </NavLink>
+                  <NavLink
+                    to="/equipment/new"
+                    className={({ isActive }) =>
+                      isActive
+                        ? 'font-bold text-green-800'
+                        : 'font-medium text-gray-700 hover:text-green-800'
+                    }
+                  >
+                    + List Equipment
+                  </NavLink>
+                </>
               )}
               <div className="flex items-center gap-3 ml-2 border-l border-gray-200 pl-4">
                 <span className="text-sm font-semibold text-gray-700">

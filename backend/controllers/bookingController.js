@@ -45,6 +45,7 @@ const formatBooking = (booking) => {
     handover_method: booking.handover_method,
     status: booking.status,
     rejectionReason: booking.rejection_reason,
+    rejection_reason: booking.rejection_reason,
     createdAt: booking.created_at,
     updatedAt: booking.updated_at,
     created_at: booking.created_at,
@@ -56,7 +57,14 @@ const formatBooking = (booking) => {
       pricePerDay: Number(booking.equipment.price_per_day),
       image: booking.equipment.image,
       city: booking.equipment.city,
-      state: booking.equipment.state
+      state: booking.equipment.state,
+      owner: booking.equipment.owner
+    } : undefined,
+    farmer: booking.farmer ? {
+      id: booking.farmer.id,
+      name: booking.farmer.name,
+      email: booking.farmer.email,
+      phone: booking.farmer.phone
     } : undefined
   }
 }
@@ -125,15 +133,12 @@ const createBooking = async (req, res, next) => {
     }
 
     // 6. Calculate totalDays and totalAmount from equipment.price_per_day
-    // Inclusive days: e.g., 2024-10-01 to 2024-10-01 is 1 full day rental
     const diffMs = end.getTime() - start.getTime()
     const totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1
     const pricePerDay = Number(equipment.price_per_day)
     const totalAmount = totalDays * pricePerDay
 
     // 7. Check for overlapping active or confirmed bookings
-    // Two intervals [A_start, A_end] and [B_start, B_end] overlap if:
-    // A_start <= B_end AND A_end >= B_start
     const overlapping = await prisma.booking.findFirst({
       where: {
         equipment_id: parsedEquipmentId,
@@ -169,7 +174,8 @@ const createBooking = async (req, res, next) => {
         status: 'PENDING'
       },
       include: {
-        equipment: true
+        equipment: true,
+        farmer: true
       }
     })
 
@@ -183,14 +189,17 @@ const createBooking = async (req, res, next) => {
 }
 
 /**
- * Get current user's bookings (Helper for user/farmer overview)
+ * Get current user's bookings (Farmer view)
  * GET /api/bookings/my
  */
 const getMyBookings = async (req, res, next) => {
   try {
     const bookings = await prisma.booking.findMany({
       where: { farmer_id: req.user.id },
-      include: { equipment: true },
+      include: {
+        equipment: true,
+        farmer: true
+      },
       orderBy: { created_at: 'desc' }
     })
 
@@ -200,8 +209,192 @@ const getMyBookings = async (req, res, next) => {
   }
 }
 
+/**
+ * Get bookings for equipment owned by current owner
+ * GET /api/bookings/owner
+ */
+const getOwnerBookings = async (req, res, next) => {
+  try {
+    const ownerId = req.user.id
+
+    // Retrieve equipment belonging to this owner
+    const ownerEquipments = await prisma.equipment.findMany({
+      where: {
+        OR: [
+          { owner_id: ownerId },
+          { owner: req.user.name },
+          { owner: req.user.email }
+        ]
+      },
+      select: { id: true }
+    })
+
+    const equipmentIds = ownerEquipments.map((eq) => eq.id)
+
+    const bookings = await prisma.booking.findMany({
+      where: {
+        equipment_id: { in: equipmentIds }
+      },
+      include: {
+        equipment: true,
+        farmer: true
+      },
+      orderBy: { created_at: 'desc' }
+    })
+
+    res.json(bookings.map(formatBooking))
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * Update booking status according to lifecycle rules and ownership.
+ * PATCH /api/bookings/:id/status
+ */
+const updateBookingStatus = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10)
+    if (isNaN(id)) {
+      throw new AppError('Invalid booking ID', 400)
+    }
+
+    req.body = req.body || {}
+    const { status, rejectionReason, rejection_reason } = req.body
+    if (!status) {
+      throw new AppError('Status is required', 400)
+    }
+
+    const targetStatus = String(status).toUpperCase()
+    const validStatuses = ['CONFIRMED', 'REJECTED', 'CANCELLED', 'ACTIVE', 'COMPLETED']
+    if (!validStatuses.includes(targetStatus)) {
+      throw new AppError(`Invalid status '${targetStatus}'`, 400)
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        equipment: true,
+        farmer: true
+      }
+    })
+
+    if (!booking) {
+      throw new AppError('Booking not found', 404)
+    }
+
+    const currentStatus = booking.status
+    const isFarmer = req.user.id === booking.farmer_id
+    const isEquipmentOwner = Boolean(
+      (booking.equipment.owner_id && booking.equipment.owner_id === req.user.id) ||
+      (booking.equipment.owner && (booking.equipment.owner === req.user.name || booking.equipment.owner === req.user.email))
+    )
+
+    // Enforce ownership and transition rules
+    if (targetStatus === 'CONFIRMED') {
+      if (!isEquipmentOwner) {
+        throw new AppError('Forbidden: Only the equipment owner can confirm bookings', 403)
+      }
+      if (currentStatus !== 'PENDING') {
+        throw new AppError(`Cannot confirm booking from status '${currentStatus}'. Only PENDING bookings can be confirmed.`, 400)
+      }
+    } else if (targetStatus === 'REJECTED') {
+      if (!isEquipmentOwner) {
+        throw new AppError('Forbidden: Only the equipment owner can reject bookings', 403)
+      }
+      if (currentStatus !== 'PENDING') {
+        throw new AppError(`Cannot reject booking from status '${currentStatus}'. Only PENDING bookings can be rejected.`, 400)
+      }
+    } else if (targetStatus === 'CANCELLED') {
+      if (!isFarmer) {
+        throw new AppError('Forbidden: Farmers can cancel only their own bookings', 403)
+      }
+      if (currentStatus !== 'PENDING') {
+        throw new AppError(`Cannot cancel booking from status '${currentStatus}'. Only PENDING bookings can be cancelled.`, 400)
+      }
+    } else if (targetStatus === 'ACTIVE') {
+      if (!isEquipmentOwner && !isFarmer) {
+        throw new AppError('Forbidden: Not authorized to activate this booking', 403)
+      }
+      if (currentStatus !== 'CONFIRMED') {
+        throw new AppError(`Cannot activate booking from status '${currentStatus}'. Only CONFIRMED bookings can become ACTIVE.`, 400)
+      }
+    } else if (targetStatus === 'COMPLETED') {
+      if (!isEquipmentOwner && !isFarmer) {
+        throw new AppError('Forbidden: Not authorized to complete this booking', 403)
+      }
+      if (currentStatus !== 'ACTIVE') {
+        throw new AppError(`Cannot complete booking from status '${currentStatus}'. Only ACTIVE bookings can become COMPLETED.`, 400)
+      }
+    }
+
+    const dataToUpdate = {
+      status: targetStatus,
+      updated_at: new Date()
+    }
+
+    const finalReason = rejectionReason || rejection_reason
+    if (targetStatus === 'REJECTED') {
+      dataToUpdate.rejection_reason = finalReason || 'Booking request rejected by owner.'
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: dataToUpdate,
+      include: {
+        equipment: true,
+        farmer: true
+      }
+    })
+
+    res.json({
+      message: `Booking status updated to ${targetStatus}`,
+      booking: formatBooking(updated)
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+const confirmBooking = (req, res, next) => {
+  req.body = req.body || {}
+  req.body.status = 'CONFIRMED'
+  return updateBookingStatus(req, res, next)
+}
+
+const rejectBooking = (req, res, next) => {
+  req.body = req.body || {}
+  req.body.status = 'REJECTED'
+  return updateBookingStatus(req, res, next)
+}
+
+const cancelBooking = (req, res, next) => {
+  req.body = req.body || {}
+  req.body.status = 'CANCELLED'
+  return updateBookingStatus(req, res, next)
+}
+
+const activateBooking = (req, res, next) => {
+  req.body = req.body || {}
+  req.body.status = 'ACTIVE'
+  return updateBookingStatus(req, res, next)
+}
+
+const completeBooking = (req, res, next) => {
+  req.body = req.body || {}
+  req.body.status = 'COMPLETED'
+  return updateBookingStatus(req, res, next)
+}
+
 module.exports = {
   createBooking,
   getMyBookings,
+  getOwnerBookings,
+  updateBookingStatus,
+  confirmBooking,
+  rejectBooking,
+  cancelBooking,
+  activateBooking,
+  completeBooking,
   formatBooking
 }

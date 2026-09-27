@@ -111,6 +111,7 @@ export interface Booking {
   createdAt?: string
   updatedAt?: string
   equipment?: Partial<Equipment>
+  farmer?: Partial<SafeUser>
 }
 
 export interface CreateBookingResponse {
@@ -357,9 +358,77 @@ export async function getMyBookings(): Promise<Booking[]> {
   return apiRequest<Booking[]>('/bookings/my')
 }
 
+/**
+ * Fetch bookings for equipment owned by authenticated owner.
+ * GET /api/bookings/owner
+ */
+export async function getOwnerBookings(): Promise<Booking[]> {
+  return apiRequest<Booking[]>('/bookings/owner')
+}
+
+/**
+ * Update booking status with optional rejection reason.
+ * PATCH /api/bookings/:id/status
+ */
+export async function updateBookingStatus(
+  id: number,
+  status: string,
+  rejectionReason?: string
+): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, rejectionReason }),
+  })
+}
+
+/**
+ * Confirm a pending booking (Owner action)
+ */
+export async function confirmBooking(id: number): Promise<{ message: string; booking: Booking }> {
+  return updateBookingStatus(id, 'CONFIRMED')
+}
+
+/**
+ * Reject a pending booking with a reason (Owner action)
+ */
+export async function rejectBooking(
+  id: number,
+  rejectionReason?: string
+): Promise<{ message: string; booking: Booking }> {
+  return updateBookingStatus(id, 'REJECTED', rejectionReason)
+}
+
+/**
+ * Cancel a pending booking (Farmer action)
+ */
+export async function cancelBooking(id: number): Promise<{ message: string; booking: Booking }> {
+  return updateBookingStatus(id, 'CANCELLED')
+}
+
+/**
+ * Activate a confirmed booking (Handover started)
+ */
+export async function activateBooking(id: number): Promise<{ message: string; booking: Booking }> {
+  return updateBookingStatus(id, 'ACTIVE')
+}
+
+/**
+ * Complete an active booking (Equipment returned)
+ */
+export async function completeBooking(id: number): Promise<{ message: string; booking: Booking }> {
+  return updateBookingStatus(id, 'COMPLETED')
+}
+
 export const bookingApi = {
   create: createBooking,
   getMy: getMyBookings,
+  getOwner: getOwnerBookings,
+  updateStatus: updateBookingStatus,
+  confirm: confirmBooking,
+  reject: rejectBooking,
+  cancel: cancelBooking,
+  activate: activateBooking,
+  complete: completeBooking,
 }
 
 export const equipmentApi = {

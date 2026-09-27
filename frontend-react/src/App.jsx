@@ -9,9 +9,10 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 
 import ProtectedRoute from './components/ProtectedRoute'
+import MyBookings from './pages/MyBookings'
+import OwnerBookings from './pages/OwnerBookings'
 
-// M4 step 1 + M9 Step 2 + M10 Step 5: client-side routing.
-// Equipment creation and editing are protected for authenticated OWNER role only.
+// M4 step 1 + M9 Step 2 + M10 Step 5 + M11 Step 2: client-side routing.
 function App() {
   return (
     <Layout>
@@ -32,6 +33,30 @@ function App() {
           element={
             <ProtectedRoute requiredRole="OWNER">
               <EquipmentEdit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-bookings"
+          element={
+            <ProtectedRoute requiredRole="FARMER">
+              <MyBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/bookings"
+          element={
+            <ProtectedRoute requiredRole="FARMER">
+              <MyBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/owner/bookings"
+          element={
+            <ProtectedRoute requiredRole="OWNER">
+              <OwnerBookings />
             </ProtectedRoute>
           }
         />
