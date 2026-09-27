@@ -194,7 +194,41 @@ const login = async (req, res, next) => {
   }
 }
 
+/**
+ * Get current authenticated user details.
+ * GET /api/auth/me (Protected via requireAuth)
+ */
+const getMe = async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    })
+
+    if (!user) {
+      throw new AppError('User not found', 404)
+    }
+
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    }
+
+    res.json({
+      user: safeUser
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
 module.exports = {
   register,
-  login
+  login,
+  getMe
 }

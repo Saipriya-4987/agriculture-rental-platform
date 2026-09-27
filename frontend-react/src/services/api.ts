@@ -114,11 +114,18 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   const url = `${API_BASE_URL}${endpoint}`
   let response: Response
 
+  const token = getAuthToken()
+  const defaultAuthHeaders: Record<string, string> = {}
+  if (token) {
+    defaultAuthHeaders.Authorization = `Bearer ${token}`
+  }
+
   try {
     response = await fetch(url, {
       ...options,
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...defaultAuthHeaders,
         ...options.headers,
       },
     })
@@ -224,6 +231,13 @@ export async function loginUser(credentials: LoginCredentials): Promise<LoginRes
 }
 
 /**
+ * Fetch current authenticated user from protected /auth/me endpoint.
+ */
+export async function getCurrentUser(): Promise<{ user: SafeUser }> {
+  return apiRequest<{ user: SafeUser }>('/auth/me')
+}
+
+/**
  * Store authenticated JWT and user in localStorage.
  */
 export function setAuthSession(token: string, user: SafeUser): void {
@@ -269,6 +283,7 @@ export function isAuthenticated(): boolean {
 export const authApi = {
   register: registerUser,
   login: loginUser,
+  getCurrentUser,
   setAuthSession,
   getAuthToken,
   getAuthUser,
