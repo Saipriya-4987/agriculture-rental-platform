@@ -8,17 +8,33 @@ import EquipmentEdit from './pages/EquipmentEdit'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
-// M4 step 1 + M9 Step 2: client-side routing. Layout (shared Header + Footer) wraps
-// every route. React Router ranks static routes above dynamic ones.
+import ProtectedRoute from './components/ProtectedRoute'
+
+// M4 step 1 + M9 Step 2 + M10 Step 5: client-side routing.
+// Equipment creation and editing are protected for authenticated OWNER role only.
 function App() {
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/equipment" element={<EquipmentList />} />
-        <Route path="/equipment/new" element={<EquipmentNew />} />
+        <Route
+          path="/equipment/new"
+          element={
+            <ProtectedRoute requiredRole="OWNER">
+              <EquipmentNew />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/equipment/:id" element={<EquipmentDetails />} />
-        <Route path="/equipment/:id/edit" element={<EquipmentEdit />} />
+        <Route
+          path="/equipment/:id/edit"
+          element={
+            <ProtectedRoute requiredRole="OWNER">
+              <EquipmentEdit />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Routes>

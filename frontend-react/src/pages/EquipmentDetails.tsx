@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getEquipmentById, deleteEquipment, type Equipment } from '../services/api'
+import { getEquipmentById, deleteEquipment, hasRole, type Equipment } from '../services/api'
 
 interface Review {
   stars: string
@@ -320,39 +320,41 @@ function EquipmentDetails() {
                 </form>
               </div>
 
-              {/* OWNER ACTIONS: Edit and Delete */}
-              <div className="mb-6 pt-6 border-t border-gray-200">
-                <h2 className="text-[1.1rem] mb-3">Manage Listing</h2>
+              {/* OWNER ACTIONS: Edit and Delete (Accessible to OWNER role) */}
+              {hasRole('OWNER') && (
+                <div className="mb-6 pt-6 border-t border-gray-200">
+                  <h2 className="text-[1.1rem] mb-3">Manage Listing</h2>
 
-                {deleteError && (
-                  <p className="p-3 rounded-md mb-3 bg-red-100 text-red-800 text-sm" aria-live="polite">
-                    {deleteError}
-                  </p>
-                )}
+                  {deleteError && (
+                    <p className="p-3 rounded-md mb-3 bg-red-100 text-red-800 text-sm" aria-live="polite">
+                      {deleteError}
+                    </p>
+                  )}
 
-                {deleteSuccess ? (
-                  <p className="p-3 rounded-md mb-3 bg-green-100 text-green-800 text-sm" aria-live="polite">
-                    Equipment deleted successfully. Redirecting to equipment list...
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-3">
-                    <Link
-                      to={`/equipment/${equipment.id}/edit`}
-                      className="px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-800 font-semibold text-sm hover:bg-gray-100 transition-colors"
-                    >
-                      Edit Equipment
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                      className="px-4 py-2 border border-red-300 rounded-md bg-red-50 text-red-700 font-semibold text-sm hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isDeleting ? 'Deleting...' : 'Delete Equipment'}
-                    </button>
-                  </div>
-                )}
-              </div>
+                  {deleteSuccess ? (
+                    <p className="p-3 rounded-md mb-3 bg-green-100 text-green-800 text-sm" aria-live="polite">
+                      Equipment deleted successfully. Redirecting to equipment list...
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-3">
+                      <Link
+                        to={`/equipment/${equipment.id}/edit`}
+                        className="px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-800 font-semibold text-sm hover:bg-gray-100 transition-colors"
+                      >
+                        Edit Equipment
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="px-4 py-2 border border-red-300 rounded-md bg-red-50 text-red-700 font-semibold text-sm hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isDeleting ? 'Deleting...' : 'Delete Equipment'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

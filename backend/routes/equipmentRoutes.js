@@ -7,20 +7,23 @@ const {
   updateEquipment,
   deleteEquipment
 } = require('../controllers/equipmentController')
+const { requireAuth, requireRole } = require('../middleware/authMiddleware')
 
+// Public GET routes
 // GET /api/equipment
 router.get('/', getAllEquipment)
 
 // GET /api/equipment/:id
 router.get('/:id', getEquipmentById)
 
+// Protected Write routes: OWNER only
 // POST /api/equipment
-router.post('/', createEquipment)
+router.post('/', requireAuth, requireRole('OWNER'), createEquipment)
 
 // PUT /api/equipment/:id
-router.put('/:id', updateEquipment)
+router.put('/:id', requireAuth, requireRole('OWNER'), updateEquipment)
 
 // DELETE /api/equipment/:id
-router.delete('/:id', deleteEquipment)
+router.delete('/:id', requireAuth, requireRole('OWNER'), deleteEquipment)
 
 module.exports = router

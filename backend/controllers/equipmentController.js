@@ -13,6 +13,7 @@ const formatEquipment = (item) => {
   if (!item) return null
   return {
     id: item.id,
+    ownerId: item.owner_id || null,
     name: item.name,
     category: item.category,
     categoryValue: item.category_value || '',
@@ -112,8 +113,20 @@ const createEquipment = async (req, res, next) => {
       throw new AppError('Missing required fields', 400)
     }
 
+    // Determine owner display name and owner_id from authenticated user
+    const ownerId = req.user ? req.user.id : null
+    let ownerDisplayName = owner
+    if (!ownerDisplayName && req.user) {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { name: true, email: true }
+      })
+      ownerDisplayName = user?.name || user?.email || 'Owner'
+    }
+
     const created = await prisma.equipment.create({
       data: {
+        owner_id: ownerId,
         name,
         category,
         category_value: categoryValue || category.toLowerCase(),
@@ -129,7 +142,7 @@ const createEquipment = async (req, res, next) => {
         image_alt: imageAlt || name,
         availability_from: availabilityFrom ? new Date(availabilityFrom) : new Date('2024-01-01'),
         availability_to: availabilityTo ? new Date(availabilityTo) : new Date('2024-12-31'),
-        owner: owner || 'Unknown',
+        owner: ownerDisplayName || 'Unknown',
         rating: rating || 0,
         rating_count: ratingCount || 0,
         description: description || '',
@@ -159,6 +172,23 @@ const updateEquipment = async (req, res, next) => {
 
     if (!existing) {
       throw new AppError('Equipment not found', 404)
+    }
+
+    // Ownership check: OWNER can modify only their own equipment
+    let isOwner = false
+    if (existing.owner_id) {
+      isOwner = existing.owner_id === req.user.id
+    } else {
+      // Legacy / seeded check: verify against user name or email
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { name: true, email: true }
+      })
+      isOwner = Boolean(user && (user.name === existing.owner || user.email === existing.owner))
+    }
+
+    if (!isOwner) {
+      throw new AppError('Forbidden: You can only modify your own equipment listings.', 403)
     }
 
     const dataToUpdate = {}
@@ -220,6 +250,22 @@ const deleteEquipment = async (req, res, next) => {
 
     if (!existing) {
       throw new AppError('Equipment not found', 404)
+    }
+
+    // Ownership check: OWNER can delete only their own equipment
+    let isOwner = false
+    if (existing.owner_id) {
+      isOwner = existing.owner_id === req.user.id
+    } else {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { name: true, email: true }
+      })
+      isOwner = Boolean(user && (user.name === existing.owner || user.email === existing.owner))
+    }
+
+    if (!isOwner) {
+      throw new AppError('Forbidden: You can only delete your own equipment listings.', 403)
     }
 
     await prisma.equipment.delete({
