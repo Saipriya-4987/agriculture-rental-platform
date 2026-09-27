@@ -1,4 +1,6 @@
-import { useState, FormEvent, ChangeEvent } from 'react'
+import { useState, type FormEvent, type ChangeEvent } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { loginUser } from '../services/api'
 
 interface FormErrors {
   identifier?: string
@@ -10,25 +12,18 @@ interface Message {
   type: 'success' | 'error'
 }
 
-// M3 step 7: Login page component.
-// Based on the <section class="auth-section"> markup in frontend/login.html,
-// with the validation behaviour of frontend/js/main.js's loginForm block
-// (validateLoginForm/handleLoginSubmit) re-implemented in React (not
-// imported - main.js is never used here). Frontend-only: this never
-// authenticates anyone, same as the original page.
+const REDIRECT_DELAY_MS = 1000
 
-// Same 1200ms pause used by main.js's REDIRECT_DELAY_MS, so the success
-// message is still readable before the "redirect" happens.
-const REDIRECT_DELAY_MS = 1200
-
+// M10 Step 2: Login page connected to real JWT login API.
 function Login() {
+  const navigate = useNavigate()
+
   const [identifier, setIdentifier] = useState<string>('')
   const [password, setPassword] = useState<string>('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
-  // Same two rules as main.js's validateLoginForm(), just returning an
-  // errors object instead of inserting <span class="field-error"> elements.
   function validateLoginForm(): FormErrors {
     const newErrors: FormErrors = {}
 
@@ -43,22 +38,37 @@ function Login() {
     return newErrors
   }
 
-  function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
-    // This is a frontend-only demo - never actually authenticate anyone.
+  async function handleLoginSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const newErrors = validateLoginForm()
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length === 0) {
-      setMessage({ text: 'Login form is valid.', type: 'success' })
-      // Frontend-only "success flow": no backend/session exists, so just
-      // send the user on to the Home page after a short pause long enough
-      // to actually read the success message. No React Router yet, so a
-      // plain window.location redirect (same as the original page).
-      window.setTimeout(() => {
-        window.location.href = 'index.html'
-      }, REDIRECT_DELAY_MS)
+      setIsSubmitting(true)
+      setMessage(null)
+
+      try {
+        const response = await loginUser({
+          email: identifier.trim(),
+          password,
+        })
+
+        setMessage({
+          text: `Welcome back, ${response.user.name}! Redirecting...`,
+          type: 'success',
+        })
+
+        setTimeout(() => {
+          navigate('/')
+        }, REDIRECT_DELAY_MS)
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : 'Invalid email or password.',
+          type: 'error',
+        })
+        setIsSubmitting(false)
+      }
     } else {
       setMessage({ text: 'Please fix the highlighted fields below.', type: 'error' })
     }
@@ -72,7 +82,7 @@ function Login() {
           <p className="text-gray-500 mb-6 text-[0.95rem]">Welcome back. Enter your details to continue.</p>
 
           {message && (
-            <p className={`p-3 rounded-md mb-6 ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
+            <p className={`p-3 rounded-md mb-6 font-semibold text-[0.9rem] ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
               {message.text}
             </p>
           )}
@@ -106,13 +116,17 @@ function Login() {
               {errors.password && <span className="text-red-600 text-sm block mt-1">{errors.password}</span>}
             </div>
 
-            <a href="#" className="flex justify-end text-green-800 text-xs no-underline mb-4">Forgot password?</a>
-
-            <button type="submit" className="px-5 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900">Log In</button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-5 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Logging in...' : 'Log In'}
+            </button>
           </form>
 
-          <p className="text-center mt-6 text-sm">
-            Don't have an account? <a href="register.html" className="text-gray-700">Register here</a>
+          <p className="text-center mt-6 text-sm text-gray-600">
+            Don't have an account? <Link to="/register" className="text-green-800 font-semibold no-underline hover:underline">Register here</Link>
           </p>
         </div>
       </div>

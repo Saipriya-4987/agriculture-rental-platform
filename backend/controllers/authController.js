@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const prisma = require('../prisma/client')
 
@@ -8,6 +9,7 @@ class AppError extends Error {
   }
 }
 
+const JWT_SECRET = process.env.JWT_SECRET || 'agrirent-default-super-secret-jwt-key'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^\+?\d{10,15}$/
 
@@ -118,6 +120,81 @@ const register = async (req, res, next) => {
   }
 }
 
+/**
+ * Log in an existing user with JWT.
+ * POST /api/auth/login
+ */
+const login = async (req, res, next) => {
+  try {
+    const { email, identifier, password } = req.body
+
+    const loginIdentifier = (email || identifier || '').trim().toLowerCase()
+
+    // 1. Validate inputs
+    if (!loginIdentifier) {
+      throw new AppError('Email is required', 400)
+    }
+
+    if (!password || typeof password !== 'string') {
+      throw new AppError('Password is required', 400)
+    }
+
+    // 2. Find user by email using Prisma (also allow matching phone if entered)
+    let user = await prisma.user.findUnique({
+      where: { email: loginIdentifier }
+    })
+
+    if (!user && /^\+?\d{10,15}$/.test(loginIdentifier)) {
+      user = await prisma.user.findUnique({
+        where: { phone: loginIdentifier }
+      })
+    }
+
+    // 3. Reject unknown user safely
+    if (!user) {
+      throw new AppError('Invalid email or password', 401)
+    }
+
+    // 4. Verify password with bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash)
+    if (!isPasswordValid) {
+      throw new AppError('Invalid email or password', 401)
+    }
+
+    // 5. Generate signed JWT containing user id and role
+    const token = jwt.sign(
+      {
+        id: user.id,
+        role: user.role,
+        email: user.email
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    )
+
+    // 6. Return token + safe user data without password_hash
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    }
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: safeUser
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
 module.exports = {
-  register
+  register,
+  login
 }

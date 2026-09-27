@@ -78,6 +78,18 @@ export interface RegisterResponse {
   user: SafeUser
 }
 
+export interface LoginCredentials {
+  email?: string
+  identifier?: string
+  password: string
+}
+
+export interface LoginResponse {
+  message: string
+  token: string
+  user: SafeUser
+}
+
 /**
  * Custom API Error class with HTTP status code and optional details.
  */
@@ -195,8 +207,73 @@ export async function registerUser(data: RegisterUserData): Promise<RegisterResp
   })
 }
 
+/**
+ * Log in an existing user with JWT.
+ */
+export async function loginUser(credentials: LoginCredentials): Promise<LoginResponse> {
+  const response = await apiRequest<LoginResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  })
+
+  if (response.token && response.user) {
+    setAuthSession(response.token, response.user)
+  }
+
+  return response
+}
+
+/**
+ * Store authenticated JWT and user in localStorage.
+ */
+export function setAuthSession(token: string, user: SafeUser): void {
+  localStorage.setItem('agrirent_token', token)
+  localStorage.setItem('agrirent_user', JSON.stringify(user))
+}
+
+/**
+ * Retrieve the current JWT token.
+ */
+export function getAuthToken(): string | null {
+  return localStorage.getItem('agrirent_token')
+}
+
+/**
+ * Retrieve the current authenticated user.
+ */
+export function getAuthUser(): SafeUser | null {
+  const raw = localStorage.getItem('agrirent_user')
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as SafeUser
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Clear the current authentication session.
+ */
+export function clearAuthSession(): void {
+  localStorage.removeItem('agrirent_token')
+  localStorage.removeItem('agrirent_user')
+}
+
+/**
+ * Check if a user is currently authenticated.
+ */
+export function isAuthenticated(): boolean {
+  return Boolean(getAuthToken())
+}
+
 export const authApi = {
   register: registerUser,
+  login: loginUser,
+  setAuthSession,
+  getAuthToken,
+  getAuthUser,
+  clearAuthSession,
+  isAuthenticated,
 }
 
 export const equipmentApi = {
