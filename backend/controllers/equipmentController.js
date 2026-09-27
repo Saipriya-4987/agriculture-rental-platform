@@ -1,4 +1,4 @@
-const db = require('../db')
+const prisma = require('../prisma/client')
 
 // Custom error class for better error handling
 class AppError extends Error {
@@ -8,54 +8,56 @@ class AppError extends Error {
   }
 }
 
-// Helper to format PostgreSQL row to JSON equipment object
-const formatEquipmentRow = (row) => {
-  if (!row) return null
+// Helper to format Prisma equipment model to JSON equipment object
+const formatEquipment = (item) => {
+  if (!item) return null
   return {
-    id: row.id,
-    name: row.name,
-    category: row.category,
-    categoryValue: row.category_value || '',
-    state: row.state,
-    stateValue: row.state_value || '',
-    district: row.district || '',
-    districtValue: row.district_value || '',
-    village: row.village || '',
-    villageValue: row.village_value || '',
-    city: row.city,
-    pricePerDay: Number(row.price_per_day),
-    image: row.image || '',
-    imageAlt: row.image_alt || '',
-    availabilityFrom: row.availability_from
-      ? (typeof row.availability_from === 'string'
-          ? row.availability_from.split('T')[0]
-          : row.availability_from.toISOString().split('T')[0])
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    categoryValue: item.category_value || '',
+    state: item.state,
+    stateValue: item.state_value || '',
+    district: item.district || '',
+    districtValue: item.district_value || '',
+    village: item.village || '',
+    villageValue: item.village_value || '',
+    city: item.city,
+    pricePerDay: Number(item.price_per_day),
+    image: item.image || '',
+    imageAlt: item.image_alt || '',
+    availabilityFrom: item.availability_from
+      ? (typeof item.availability_from === 'string'
+          ? item.availability_from.split('T')[0]
+          : item.availability_from.toISOString().split('T')[0])
       : '',
-    availabilityTo: row.availability_to
-      ? (typeof row.availability_to === 'string'
-          ? row.availability_to.split('T')[0]
-          : row.availability_to.toISOString().split('T')[0])
+    availabilityTo: item.availability_to
+      ? (typeof item.availability_to === 'string'
+          ? item.availability_to.split('T')[0]
+          : item.availability_to.toISOString().split('T')[0])
       : '',
-    owner: row.owner || '',
-    rating: Number(row.rating || 0),
-    ratingCount: Number(row.rating_count || 0),
-    description: row.description || '',
-    features: row.features || [],
-    availability: row.availability || []
+    owner: item.owner || '',
+    rating: Number(item.rating || 0),
+    ratingCount: Number(item.rating_count || 0),
+    description: item.description || '',
+    features: item.features || [],
+    availability: item.availability || []
   }
 }
 
-// GET all equipment (SELECT)
+// GET all equipment (Prisma findMany)
 const getAllEquipment = async (req, res, next) => {
   try {
-    const result = await db.query('SELECT * FROM equipment ORDER BY id ASC')
-    res.json(result.rows.map(formatEquipmentRow))
+    const items = await prisma.equipment.findMany({
+      orderBy: { id: 'asc' }
+    })
+    res.json(items.map(formatEquipment))
   } catch (err) {
     next(err)
   }
 }
 
-// GET single equipment by ID (SELECT ... WHERE id)
+// GET single equipment by ID (Prisma findUnique)
 const getEquipmentById = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id)
@@ -64,19 +66,21 @@ const getEquipmentById = async (req, res, next) => {
       throw new AppError('Invalid equipment ID', 400)
     }
 
-    const result = await db.query('SELECT * FROM equipment WHERE id = $1', [id])
+    const item = await prisma.equipment.findUnique({
+      where: { id }
+    })
 
-    if (result.rows.length === 0) {
+    if (!item) {
       throw new AppError('Equipment not found', 404)
     }
 
-    res.json(formatEquipmentRow(result.rows[0]))
+    res.json(formatEquipment(item))
   } catch (err) {
     next(err)
   }
 }
 
-// POST create new equipment (INSERT)
+// POST create new equipment (Prisma create)
 const createEquipment = async (req, res, next) => {
   try {
     const {
@@ -108,52 +112,39 @@ const createEquipment = async (req, res, next) => {
       throw new AppError('Missing required fields', 400)
     }
 
-    const catVal = categoryValue || category.toLowerCase()
-    const stVal = stateValue || state.toLowerCase().replace(/\s+/g, '-')
-    const dist = district || ''
-    const distVal = districtValue || ''
-    const vill = village || ''
-    const villVal = villageValue || ''
-    const img = image || 'https://placehold.co/400x300?text=Equipment'
-    const imgAlt = imageAlt || name
-    const availFrom = availabilityFrom || '2024-01-01'
-    const availTo = availabilityTo || '2024-12-31'
-    const own = owner || 'Unknown'
-    const rat = rating || 0
-    const ratCount = ratingCount || 0
-    const desc = description || ''
-    const feat = features || []
-    const avail = availability || []
+    const created = await prisma.equipment.create({
+      data: {
+        name,
+        category,
+        category_value: categoryValue || category.toLowerCase(),
+        state,
+        state_value: stateValue || state.toLowerCase().replace(/\s+/g, '-'),
+        district: district || '',
+        district_value: districtValue || '',
+        village: village || '',
+        village_value: villageValue || '',
+        city,
+        price_per_day: pricePerDay,
+        image: image || 'https://placehold.co/400x300?text=Equipment',
+        image_alt: imageAlt || name,
+        availability_from: availabilityFrom ? new Date(availabilityFrom) : new Date('2024-01-01'),
+        availability_to: availabilityTo ? new Date(availabilityTo) : new Date('2024-12-31'),
+        owner: owner || 'Unknown',
+        rating: rating || 0,
+        rating_count: ratingCount || 0,
+        description: description || '',
+        features: features || [],
+        availability: availability || []
+      }
+    })
 
-    const insertSql = `
-      INSERT INTO equipment (
-        name, category, category_value, state, state_value, district, district_value,
-        village, village_value, city, price_per_day, image, image_alt,
-        availability_from, availability_to, owner, rating, rating_count,
-        description, features, availability
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7,
-        $8, $9, $10, $11, $12, $13,
-        $14, $15, $16, $17, $18,
-        $19, $20, $21
-      ) RETURNING *
-    `
-
-    const values = [
-      name, category, catVal, state, stVal, dist, distVal,
-      vill, villVal, city, Number(pricePerDay), img, imgAlt,
-      availFrom, availTo, own, rat, ratCount,
-      desc, feat, avail
-    ]
-
-    const result = await db.query(insertSql, values)
-    res.status(201).json(formatEquipmentRow(result.rows[0]))
+    res.status(201).json(formatEquipment(created))
   } catch (err) {
     next(err)
   }
 }
 
-// PUT update equipment (UPDATE)
+// PUT update equipment (Prisma update)
 const updateEquipment = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id)
@@ -162,68 +153,59 @@ const updateEquipment = async (req, res, next) => {
       throw new AppError('Invalid equipment ID', 400)
     }
 
-    // Check if equipment exists
-    const existingRes = await db.query('SELECT * FROM equipment WHERE id = $1', [id])
-    if (existingRes.rows.length === 0) {
+    const existing = await prisma.equipment.findUnique({
+      where: { id }
+    })
+
+    if (!existing) {
       throw new AppError('Equipment not found', 404)
     }
 
-    const current = existingRes.rows[0]
-
-    // Merge request body with current fields
-    const updated = {
-      name: req.body.name !== undefined ? req.body.name : current.name,
-      category: req.body.category !== undefined ? req.body.category : current.category,
-      category_value: req.body.categoryValue !== undefined ? req.body.categoryValue : (req.body.category ? req.body.category.toLowerCase() : current.category_value),
-      state: req.body.state !== undefined ? req.body.state : current.state,
-      state_value: req.body.stateValue !== undefined ? req.body.stateValue : (req.body.state ? req.body.state.toLowerCase().replace(/\s+/g, '-') : current.state_value),
-      district: req.body.district !== undefined ? req.body.district : current.district,
-      district_value: req.body.districtValue !== undefined ? req.body.districtValue : current.district_value,
-      village: req.body.village !== undefined ? req.body.village : current.village,
-      village_value: req.body.villageValue !== undefined ? req.body.villageValue : current.village_value,
-      city: req.body.city !== undefined ? req.body.city : current.city,
-      price_per_day: req.body.pricePerDay !== undefined ? Number(req.body.pricePerDay) : current.price_per_day,
-      image: req.body.image !== undefined ? req.body.image : current.image,
-      image_alt: req.body.imageAlt !== undefined ? req.body.imageAlt : current.image_alt,
-      availability_from: req.body.availabilityFrom !== undefined ? req.body.availabilityFrom : current.availability_from,
-      availability_to: req.body.availabilityTo !== undefined ? req.body.availabilityTo : current.availability_to,
-      owner: req.body.owner !== undefined ? req.body.owner : current.owner,
-      rating: req.body.rating !== undefined ? req.body.rating : current.rating,
-      rating_count: req.body.ratingCount !== undefined ? req.body.ratingCount : current.rating_count,
-      description: req.body.description !== undefined ? req.body.description : current.description,
-      features: req.body.features !== undefined ? req.body.features : current.features,
-      availability: req.body.availability !== undefined ? req.body.availability : current.availability
+    const dataToUpdate = {}
+    if (req.body.name !== undefined) dataToUpdate.name = req.body.name
+    if (req.body.category !== undefined) {
+      dataToUpdate.category = req.body.category
+      dataToUpdate.category_value = req.body.categoryValue !== undefined ? req.body.categoryValue : req.body.category.toLowerCase()
+    } else if (req.body.categoryValue !== undefined) {
+      dataToUpdate.category_value = req.body.categoryValue
     }
 
-    const updateSql = `
-      UPDATE equipment SET
-        name = $1, category = $2, category_value = $3, state = $4, state_value = $5,
-        district = $6, district_value = $7, village = $8, village_value = $9,
-        city = $10, price_per_day = $11, image = $12, image_alt = $13,
-        availability_from = $14, availability_to = $15, owner = $16,
-        rating = $17, rating_count = $18, description = $19, features = $20,
-        availability = $21
-      WHERE id = $22
-      RETURNING *
-    `
+    if (req.body.state !== undefined) {
+      dataToUpdate.state = req.body.state
+      dataToUpdate.state_value = req.body.stateValue !== undefined ? req.body.stateValue : req.body.state.toLowerCase().replace(/\s+/g, '-')
+    } else if (req.body.stateValue !== undefined) {
+      dataToUpdate.state_value = req.body.stateValue
+    }
 
-    const values = [
-      updated.name, updated.category, updated.category_value, updated.state, updated.state_value,
-      updated.district, updated.district_value, updated.village, updated.village_value,
-      updated.city, updated.price_per_day, updated.image, updated.image_alt,
-      updated.availability_from, updated.availability_to, updated.owner,
-      updated.rating, updated.rating_count, updated.description, updated.features,
-      updated.availability, id
-    ]
+    if (req.body.district !== undefined) dataToUpdate.district = req.body.district
+    if (req.body.districtValue !== undefined) dataToUpdate.district_value = req.body.districtValue
+    if (req.body.village !== undefined) dataToUpdate.village = req.body.village
+    if (req.body.villageValue !== undefined) dataToUpdate.village_value = req.body.villageValue
+    if (req.body.city !== undefined) dataToUpdate.city = req.body.city
+    if (req.body.pricePerDay !== undefined) dataToUpdate.price_per_day = req.body.pricePerDay
+    if (req.body.image !== undefined) dataToUpdate.image = req.body.image
+    if (req.body.imageAlt !== undefined) dataToUpdate.image_alt = req.body.imageAlt
+    if (req.body.availabilityFrom !== undefined) dataToUpdate.availability_from = new Date(req.body.availabilityFrom)
+    if (req.body.availabilityTo !== undefined) dataToUpdate.availability_to = new Date(req.body.availabilityTo)
+    if (req.body.owner !== undefined) dataToUpdate.owner = req.body.owner
+    if (req.body.rating !== undefined) dataToUpdate.rating = req.body.rating
+    if (req.body.ratingCount !== undefined) dataToUpdate.rating_count = req.body.ratingCount
+    if (req.body.description !== undefined) dataToUpdate.description = req.body.description
+    if (req.body.features !== undefined) dataToUpdate.features = req.body.features
+    if (req.body.availability !== undefined) dataToUpdate.availability = req.body.availability
 
-    const result = await db.query(updateSql, values)
-    res.json(formatEquipmentRow(result.rows[0]))
+    const updated = await prisma.equipment.update({
+      where: { id },
+      data: dataToUpdate
+    })
+
+    res.json(formatEquipment(updated))
   } catch (err) {
     next(err)
   }
 }
 
-// DELETE equipment (DELETE)
+// DELETE equipment (Prisma delete)
 const deleteEquipment = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id)
@@ -232,11 +214,17 @@ const deleteEquipment = async (req, res, next) => {
       throw new AppError('Invalid equipment ID', 400)
     }
 
-    const result = await db.query('DELETE FROM equipment WHERE id = $1 RETURNING id', [id])
+    const existing = await prisma.equipment.findUnique({
+      where: { id }
+    })
 
-    if (result.rows.length === 0) {
+    if (!existing) {
       throw new AppError('Equipment not found', 404)
     }
+
+    await prisma.equipment.delete({
+      where: { id }
+    })
 
     res.json({ message: 'Equipment deleted successfully' })
   } catch (err) {
