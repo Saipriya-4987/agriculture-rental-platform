@@ -1,5 +1,6 @@
-import { useState, FormEvent, ChangeEvent } from 'react'
-import equipmentData from '../data/equipmentData.js'
+import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { getEquipmentById, type Equipment } from '../services/api'
 
 interface Review {
   stars: string
@@ -17,38 +18,21 @@ interface Message {
   type: 'success' | 'error'
 }
 
-// M3 step 6: Equipment Details page component.
-// Based on the <section class="details-section"> + <section
-// class="reviews-section"> markup in frontend/equipment-details.html.
-//
-// There's no React Router yet, so this isn't a dynamic "/equipment/:id"
-// page - like the original vanilla HTML file, it always shows ONE
-// specific listing. It looks that listing (Mahindra 575 DI, id 1) up in
-// the shared equipmentData array so name/category/state/city/price still
-// come from the same mock data source as Home and EquipmentList, instead
-// of being re-typed here.
-//
-// The rest of the page's content - owner, rating, description, features,
-// the 3 availability windows, and the 2 reviews - has no matching fields
-// in equipmentData (Home/EquipmentList never needed them), so it's kept
-// as page-local constants, copied verbatim from the original HTML.
-const equipment = equipmentData.find((item) => item.id === 1)
+const DEFAULT_OWNER_NAME = 'Ramesh Naidu'
+const DEFAULT_RATING_STARS = '★★★★☆'
+const DEFAULT_RATING_COUNT = '(4.2 · 18 reviews)'
 
-const OWNER_NAME = 'Ramesh Naidu'
-const RATING_STARS = '★★★★☆'
-const RATING_COUNT = '(4.2 · 18 reviews)'
-
-const DESCRIPTION = '45 HP diesel tractor, well maintained, suitable for ploughing, '
+const DEFAULT_DESCRIPTION = '45 HP diesel tractor, well maintained, suitable for ploughing, '
   + 'tilling and general farm haulage. Comes with standard 2WD and power steering.'
 
-const FEATURES: string[] = [
+const DEFAULT_FEATURES: string[] = [
   '45 HP diesel engine',
   'Power steering',
   '2WD',
   'Attachment-ready hitch',
 ]
 
-const AVAILABILITY_WINDOWS: string[] = [
+const DEFAULT_AVAILABILITY_WINDOWS: string[] = [
   '01 Oct 2026 – 05 Oct 2026',
   '10 Oct 2026 – 20 Oct 2026',
   '25 Oct 2026 – 31 Oct 2026',
@@ -68,20 +52,47 @@ const REVIEWS: Review[] = [
 ]
 
 function EquipmentDetails() {
-  // Rental request form (frontend-only demo, migrated from js/main.js's
-  // rentalForm block): controlled inputs + the same validation rules,
-  // now expressed as React state instead of DOM error <span>s.
+  const { id } = useParams<{ id: string }>()
+
+  const [equipment, setEquipment] = useState<Equipment | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+
   const [rentalFrom, setRentalFrom] = useState<string>('')
   const [rentalUntil, setRentalUntil] = useState<string>('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
 
-  if (!equipment) {
-    return null
-  }
+  useEffect(() => {
+    let ignore = false
 
-  // Same three rules as main.js's validateRentalForm(), just returning an
-  // errors object instead of inserting <span class="field-error"> elements.
+    const fetchPromise = !id
+      ? Promise.reject(new Error('No equipment ID provided'))
+      : getEquipmentById(id)
+
+    fetchPromise
+      .then((data) => {
+        if (!ignore) {
+          setEquipment(data)
+          setError(null)
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to load equipment details')
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [id])
+
   function validateRentalForm(): FormErrors {
     const newErrors: FormErrors = {}
 
@@ -93,9 +104,6 @@ function EquipmentDetails() {
       newErrors.rentalUntil = 'Please choose a rental end date.'
     }
 
-    // Same "YYYY-MM-DD" plain-string comparison used by the Home page's
-    // date filters - only checked once both dates are present, so this
-    // doesn't pile a second error onto an already-empty field.
     if (rentalFrom !== '' && rentalUntil !== '' && rentalUntil < rentalFrom) {
       newErrors.rentalUntil = 'Rental Until date cannot be earlier than Rental From date.'
     }
@@ -104,7 +112,6 @@ function EquipmentDetails() {
   }
 
   function handleRentalSubmit(event: FormEvent<HTMLFormElement>) {
-    // This is a frontend-only demo - never actually creates a booking.
     event.preventDefault()
 
     const newErrors = validateRentalForm()
@@ -117,24 +124,65 @@ function EquipmentDetails() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-gray-600 text-lg">Loading equipment details...</p>
+      </div>
+    )
+  }
+
+  if (error || !equipment) {
+    return (
+      <div className="py-20 max-w-[600px] mx-auto px-5 text-center">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-2">Equipment Not Found</h2>
+          <p className="text-sm mb-5">{error || 'Could not find the requested equipment listing.'}</p>
+          <Link
+            to="/equipment"
+            className="inline-block px-5 py-2.5 bg-green-800 text-white rounded-md font-semibold hover:bg-green-900"
+          >
+            &larr; Back to Browse Equipment
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const ownerName = equipment.owner || DEFAULT_OWNER_NAME
+  const ratingStars = equipment.rating !== undefined && equipment.rating > 0
+    ? '★'.repeat(Math.min(5, Math.max(1, Math.round(equipment.rating)))) + '☆'.repeat(Math.max(0, 5 - Math.min(5, Math.max(1, Math.round(equipment.rating)))))
+    : DEFAULT_RATING_STARS
+  const ratingCount = equipment.ratingCount !== undefined && equipment.ratingCount > 0
+    ? `(${equipment.rating} · ${equipment.ratingCount} reviews)`
+    : DEFAULT_RATING_COUNT
+
+  const description = equipment.description || DEFAULT_DESCRIPTION
+  const features = equipment.features && equipment.features.length > 0 ? equipment.features : DEFAULT_FEATURES
+
+  let availabilityList = DEFAULT_AVAILABILITY_WINDOWS
+  if (equipment.availability && equipment.availability.length > 0) {
+    availabilityList = equipment.availability
+  } else if (equipment.availabilityFrom && equipment.availabilityTo) {
+    availabilityList = [`${equipment.availabilityFrom} – ${equipment.availabilityTo}`]
+  }
+
   return (
     <>
-      {/* EQUIPMENT DETAILS SECTION (FR-DSC-03, CORE text version):
-          images, price/day, features, owner name + rating, availability, location. */}
       <section className="py-8 pb-12">
         <div className="max-w-[1100px] mx-auto px-5">
-
-          <a href="index.html" className="inline-block mb-5 text-green-800 font-semibold hover:underline">&larr; Back to search</a>
+          <Link to="/equipment" className="inline-block mb-5 text-green-800 font-semibold hover:underline">
+            &larr; Back to search
+          </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10">
-
             {/* LEFT: gallery */}
             <div>
-              <img src={equipment.image} alt={equipment.imageAlt} className="w-full h-[320px] object-cover rounded-xl" />
+              <img src={equipment.image} alt={equipment.imageAlt || equipment.name} className="w-full h-[320px] object-cover rounded-xl" />
               <div className="flex gap-2.5 mt-2.5">
-                <img src="https://placehold.co/150x100?text=1" alt="Tractor front view" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
-                <img src="https://placehold.co/150x100?text=2" alt="Tractor side view" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
-                <img src="https://placehold.co/150x100?text=3" alt="Tractor with attachment" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
+                <img src="https://placehold.co/150x100?text=1" alt="Equipment view 1" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
+                <img src="https://placehold.co/150x100?text=2" alt="Equipment view 2" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
+                <img src="https://placehold.co/150x100?text=3" alt="Equipment view 3" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
               </div>
             </div>
 
@@ -144,8 +192,8 @@ function EquipmentDetails() {
               <h1 className="text-[1.8rem] my-2 mx-0">{equipment.name}</h1>
 
               <p className="text-gray-700 mb-1">
-                Listed by <strong>{OWNER_NAME}</strong>
-                <span className="ml-2 text-amber-500 font-semibold">{RATING_STARS} <span className="text-gray-500 font-normal text-sm">{RATING_COUNT}</span></span>
+                Listed by <strong>{ownerName}</strong>
+                <span className="ml-2 text-amber-500 font-semibold">{ratingStars} <span className="text-gray-500 font-normal text-sm">{ratingCount}</span></span>
               </p>
 
               <p className="text-gray-500 text-sm">📍 {equipment.city}, {equipment.state}</p>
@@ -154,17 +202,17 @@ function EquipmentDetails() {
                 ₹{equipment.pricePerDay.toLocaleString('en-IN')} <span className="text-sm font-normal text-gray-500">/ day</span>
               </p>
 
-              <a href="#" className="inline-block bg-amber-500 text-white font-bold px-7 py-3 rounded-md mb-7 hover:bg-amber-600">Book Now</a>
+              <a href="#request-section" className="inline-block bg-amber-500 text-white font-bold px-7 py-3 rounded-md mb-7 hover:bg-amber-600">Book Now</a>
 
               <div className="mb-6">
                 <h2 className="text-[1.1rem] mb-2">Description</h2>
-                <p>{DESCRIPTION}</p>
+                <p>{description}</p>
               </div>
 
               <div className="mb-6">
                 <h2 className="text-[1.1rem] mb-2">Features</h2>
                 <ul className="pl-5 text-gray-700">
-                  {FEATURES.map((feature) => (
+                  {features.map((feature) => (
                     <li key={feature} className="mb-1">{feature}</li>
                   ))}
                 </ul>
@@ -173,17 +221,14 @@ function EquipmentDetails() {
               <div className="mb-6">
                 <h2 className="text-[1.1rem] mb-2">Availability</h2>
                 <ul className="pl-5 text-gray-700">
-                  {AVAILABILITY_WINDOWS.map((window) => (
+                  {availabilityList.map((window) => (
                     <li key={window} className="mb-1">{window}</li>
                   ))}
                 </ul>
               </div>
 
-              {/* RENTAL/BOOKING REQUEST FORM (frontend-only demo, M2 -> M3):
-                  same client-side date validation + success message as
-                  js/main.js's rentalForm block, now controlled by useState
-                  instead of reading the DOM on submit. */}
-              <div className="mb-6">
+              {/* RENTAL/BOOKING REQUEST FORM */}
+              <div id="request-section" className="mb-6">
                 <h2 className="text-[1.1rem] mb-2">Request to Rent</h2>
 
                 {message && (
@@ -221,16 +266,15 @@ function EquipmentDetails() {
                     {errors.rentalUntil && <span className="text-red-600 text-sm block mt-1">{errors.rentalUntil}</span>}
                   </div>
 
-                  <button type="submit" className="px-4 py-2 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900">Request to Rent</button>
+                  <button type="submit" className="px-4 py-2 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer">Request to Rent</button>
                 </form>
               </div>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* REVIEWS SECTION (FR-REV-02: ratings/reviews shown on details page) */}
+      {/* REVIEWS SECTION */}
       <section className="pb-12">
         <div className="max-w-[1100px] mx-auto px-5">
           <h2 className="text-[1.4rem] mb-5">Reviews <span className="text-sm font-normal text-gray-500 ml-2">4.2 average · 18 reviews</span></h2>

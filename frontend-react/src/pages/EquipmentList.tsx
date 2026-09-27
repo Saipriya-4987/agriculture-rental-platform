@@ -1,22 +1,56 @@
-import type { ComponentProps, FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import EquipmentCard from '../components/EquipmentCard'
-import { equipmentListData } from '../data/equipmentData.js'
+import { getEquipmentList, type Equipment } from '../services/api'
 
-// The card's own equipment type - every item in equipmentListData (the 6
-// shared items plus the 3 list-only ones) must satisfy it, and
-// availabilityNote is its optional field.
-type CardEquipment = ComponentProps<typeof EquipmentCard>['equipment']
-
-// M3 step 5: Equipment List page component.
+// M9 Step 1: Equipment List page connected to backend API.
 // Based on the <section class="list-filter-bar"> + <section
 // class="equipment-section"> markup in frontend/equipment-list.html.
-//
-// Per this step's scope, the search/filter form is static (uncontrolled,
-// non-functional) - same starting point the Home page had before its own
-// filtering step - and the results grid simply renders all of
-// equipmentListData (the same 9 mock listings as the original page) with
-// EquipmentCard, via .map().
 function EquipmentList() {
+  const [equipment, setEquipment] = useState<Equipment[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let ignore = false
+
+    getEquipmentList()
+      .then((data) => {
+        if (!ignore) {
+          setEquipment(data)
+          setError(null)
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to load equipment.')
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  function handleRetry() {
+    setLoading(true)
+    setError(null)
+    getEquipmentList()
+      .then((data) => {
+        setEquipment(data)
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to load equipment.')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
   }
@@ -89,13 +123,41 @@ function EquipmentList() {
 
       <section className="py-12">
         <div className="max-w-[1100px] mx-auto px-5">
-          <h2 className="text-[1.6rem] mb-6">{equipmentListData.length} results</h2>
+          {loading && (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg">Loading equipment...</p>
+            </div>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {equipmentListData.map((equipment: CardEquipment) => (
-              <EquipmentCard key={equipment.id} equipment={equipment} />
-            ))}
-          </div>
+          {error && !loading && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-md text-center max-w-[600px] mx-auto mb-8">
+              <p className="font-semibold">Unable to load equipment</p>
+              <p className="text-sm mt-1">{error}</p>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="mt-3 px-4 py-1.5 bg-green-800 text-white rounded text-sm font-semibold hover:bg-green-900 cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && (
+            <>
+              <h2 className="text-[1.6rem] mb-6">{equipment.length} results</h2>
+
+              {equipment.length === 0 ? (
+                <p className="col-span-full text-center text-gray-500 py-8">No equipment found</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {equipment.map((item: Equipment) => (
+                    <EquipmentCard key={item.id} equipment={item} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
     </>

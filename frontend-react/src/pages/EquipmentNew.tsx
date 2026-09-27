@@ -1,5 +1,6 @@
-import { useState, FormEvent, ChangeEvent } from 'react'
+import { useState, type FormEvent, type ChangeEvent } from 'react'
 import { locationData } from '../data/equipmentData.js'
+import { createEquipment } from '../services/api'
 
 interface FormData {
   name: string
@@ -38,18 +39,30 @@ interface VillageOption {
   label: string
 }
 
-// M3 step 8: Owner "List Equipment" page component.
-// Based on the <section class="auth-section"> markup in
-// frontend/equipment-new.html, with the validation behaviour of
-// frontend/js/main.js's listingForm block (validateListingForm/
-// handleListingSubmit) re-implemented in React (not imported - main.js is
-// never used here). Frontend-only: this never saves a listing anywhere,
-// same as the original page.
-//
-// The State -> District -> Village cascade reuses the same locationData
-// import and reset-on-change pattern already used by Home.jsx's search
-// filters, instead of main.js's shared stateSelect/districtSelect
-// querySelector wiring.
+const CATEGORY_LABELS: Record<string, string> = {
+  tractor: 'Tractor',
+  harvester: 'Harvester',
+  tiller: 'Tiller',
+  seeder: 'Seeder',
+  sprayer: 'Sprayer',
+  other: 'Other',
+}
+
+const STATE_LABELS: Record<string, string> = {
+  'andhra-pradesh': 'Andhra Pradesh',
+  telangana: 'Telangana',
+  karnataka: 'Karnataka',
+  'tamil-nadu': 'Tamil Nadu',
+  maharashtra: 'Maharashtra',
+  punjab: 'Punjab',
+  gujarat: 'Gujarat',
+  'madhya-pradesh': 'Madhya Pradesh',
+  'uttar-pradesh': 'Uttar Pradesh',
+  rajasthan: 'Rajasthan',
+}
+
+// M9 Step 1: Owner "List Equipment" page connected to backend API.
+// Based on the <section class="auth-section"> markup in frontend/equipment-new.html.
 function EquipmentNew() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -63,22 +76,21 @@ function EquipmentNew() {
   })
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
-  // Generic change handler for the plain fields (name, category, price,
-  // the two dates, and village once a district is chosen).
+  // Generic change handler for plain fields
   function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target
     setFormData((previous) => ({ ...previous, [name]: value }))
   }
 
-  // Same cascade reset behaviour as Home.jsx: changing State clears the
-  // (now possibly invalid) District and Village; changing District clears
-  // Village.
+  // Changing State clears District and Village
   function handleStateChange(event: ChangeEvent<HTMLSelectElement>) {
     const { value } = event.target
     setFormData((previous) => ({ ...previous, state: value, district: '', village: '' }))
   }
 
+  // Changing District clears Village
   function handleDistrictChange(event: ChangeEvent<HTMLSelectElement>) {
     const { value } = event.target
     setFormData((previous) => ({ ...previous, district: value, village: '' }))
@@ -96,9 +108,6 @@ function EquipmentNew() {
   const districtData = stateData && formData.district ? stateData[formData.district] : undefined
   const villageOptions: VillageOption[] = districtData ? districtData.villages : []
 
-  // Same rules, order, and messages as main.js's validateListingForm(),
-  // just returning an errors object instead of inserting
-  // <span class="field-error"> elements.
   function validateListingForm(): FormErrors {
     const newErrors: FormErrors = {}
 
@@ -122,9 +131,6 @@ function EquipmentNew() {
       newErrors.village = 'Please select a village/city.'
     }
 
-    // Price must be present AND a valid positive number - an empty
-    // string, "abc", "0" and "-50" are all rejected here, each with its
-    // own message.
     const rawPrice = formData.price.trim()
     if (rawPrice === '') {
       newErrors.price = 'Please enter the price per day.'
@@ -143,10 +149,6 @@ function EquipmentNew() {
       newErrors.dateTo = 'Please choose an available-until date.'
     }
 
-    // Same "YYYY-MM-DD" plain-string comparison used elsewhere (Home
-    // page's date filters, the Equipment Details rental form) - only
-    // checked once both dates are present, so this doesn't pile a second
-    // error onto an already-empty field.
     if (formData.dateFrom !== '' && formData.dateTo !== '' && formData.dateTo < formData.dateFrom) {
       newErrors.dateTo = 'Available Until date cannot be earlier than Available From date.'
     }
@@ -154,15 +156,61 @@ function EquipmentNew() {
     return newErrors
   }
 
-  function handleListingSubmit(event: FormEvent<HTMLFormElement>) {
-    // This is a frontend-only demo - never actually saves a listing.
+  async function handleListingSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const newErrors = validateListingForm()
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length === 0) {
-      setMessage({ text: 'Equipment listing submitted successfully.', type: 'success' })
+      setIsSubmitting(true)
+      setMessage(null)
+
+      try {
+        const stateLabel = STATE_LABELS[formData.state] || formData.state
+        const districtLabel = districtData?.label || formData.district
+        const villageOption = villageOptions.find((v) => v.value === formData.village)
+        const villageLabel = villageOption?.label || formData.village
+
+        await createEquipment({
+          name: formData.name.trim(),
+          category: CATEGORY_LABELS[formData.category] || formData.category,
+          categoryValue: formData.category,
+          state: stateLabel,
+          stateValue: formData.state,
+          district: districtLabel,
+          districtValue: formData.district,
+          village: villageLabel,
+          villageValue: formData.village,
+          city: villageLabel || districtLabel,
+          pricePerDay: Number(formData.price),
+          availabilityFrom: formData.dateFrom,
+          availabilityTo: formData.dateTo,
+          image: `https://placehold.co/400x300?text=${encodeURIComponent(formData.name.trim())}`,
+          imageAlt: formData.name.trim(),
+          description: `${CATEGORY_LABELS[formData.category] || formData.category} available for rent in ${villageLabel}, ${stateLabel}.`,
+          owner: 'Farm Owner',
+        })
+
+        setMessage({ text: 'Equipment listing submitted successfully.', type: 'success' })
+        setFormData({
+          name: '',
+          category: '',
+          state: '',
+          district: '',
+          village: '',
+          price: '',
+          dateFrom: '',
+          dateTo: '',
+        })
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : 'Failed to submit equipment listing. Please try again.',
+          type: 'error',
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
     } else {
       setMessage({ text: 'Please fix the highlighted fields below.', type: 'error' })
     }
@@ -326,7 +374,13 @@ function EquipmentNew() {
               {errors.dateTo && <span className="text-red-600 text-sm block mt-1">{errors.dateTo}</span>}
             </div>
 
-            <button type="submit" className="px-4 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900">List Equipment</button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Listing Equipment...' : 'List Equipment'}
+            </button>
           </form>
         </div>
       </div>
