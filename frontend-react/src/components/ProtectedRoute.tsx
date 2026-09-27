@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
           <span className="text-4xl mb-4 inline-block">🔒</span>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h1>
           <p className="text-gray-600 mb-6">
-            You must be logged in as an <strong>Equipment Owner</strong> to access this page.
+            You must be logged in {requiredRole ? `as a ${requiredRole}` : ''} to access this page.
           </p>
           <div className="flex justify-center gap-4">
             <Link
