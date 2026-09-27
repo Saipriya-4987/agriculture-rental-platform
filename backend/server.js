@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const equipmentRoutes = require('./routes/equipmentRoutes')
+const authRoutes = require('./routes/authRoutes')
 const { errorHandler } = require('./middleware/errorHandler')
 const { requestLogger } = require('./middleware/requestLogger')
 
@@ -19,6 +20,9 @@ app.use(requestLogger)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'AgriRent API is running' })
 })
+
+// Authentication routes
+app.use('/api/auth', authRoutes)
 
 // Equipment routes
 app.use('/api/equipment', equipmentRoutes)

@@ -54,6 +54,30 @@ export interface DeleteEquipmentResponse {
   message: string
 }
 
+export interface RegisterUserData {
+  name: string
+  email: string
+  phone: string
+  password: string
+  role: 'FARMER' | 'OWNER' | string
+}
+
+export interface SafeUser {
+  id: number
+  name: string
+  email: string
+  phone: string
+  role: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface RegisterResponse {
+  message: string
+  user: SafeUser
+}
+
 /**
  * Custom API Error class with HTTP status code and optional details.
  */
@@ -161,6 +185,20 @@ export async function deleteEquipment(id: string | number): Promise<DeleteEquipm
   })
 }
 
+/**
+ * Register a new user account (FARMER or OWNER).
+ */
+export async function registerUser(data: RegisterUserData): Promise<RegisterResponse> {
+  return apiRequest<RegisterResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export const authApi = {
+  register: registerUser,
+}
+
 export const equipmentApi = {
   getAll: getEquipmentList,
   getById: getEquipmentById,
@@ -169,4 +207,7 @@ export const equipmentApi = {
   delete: deleteEquipment,
 }
 
-export default equipmentApi
+export default {
+  ...equipmentApi,
+  ...authApi,
+}

@@ -1,4 +1,6 @@
-import { useState, FormEvent, ChangeEvent } from 'react'
+import { useState, type FormEvent, type ChangeEvent } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { registerUser } from '../services/api'
 
 interface FormErrors {
   name?: string
@@ -13,42 +15,30 @@ interface Message {
   type: 'success' | 'error'
 }
 
-// M3 step 7: Register page component.
-// Based on the <section class="auth-section"> markup in frontend/register.html,
-// with the validation behaviour of frontend/js/main.js's registerForm block
-// (validateRegisterForm/handleRegisterSubmit) re-implemented in React (not
-// imported - main.js is never used here). Frontend-only: this never creates
-// an account, same as the original page.
-
-// Same patterns used by main.js's validateRegisterForm().
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-// Optional leading "+", then 10-15 digits - loose enough for Indian
-// mobile numbers (with or without a country code) without being strict
-// about a specific country's format.
 const PHONE_PATTERN = /^\+?\d{10,15}$/
-
-// Same 1200ms pause used by main.js's REDIRECT_DELAY_MS, so the success
-// message is still readable before the "redirect" happens.
 const REDIRECT_DELAY_MS = 1200
 
+// M10 Step 1: User Registration connected to real Express/Prisma API.
 function Register() {
+  const navigate = useNavigate()
+
   const [name, setName] = useState<string>('')
   const [email, setEmail] = useState<string>('')
   const [phone, setPhone] = useState<string>('')
   const [password, setPassword] = useState<string>('')
-  // "farmer" is pre-selected, same as the original HTML's
-  // <input type="radio" name="role" value="farmer" checked>.
   const [role, setRole] = useState<string>('farmer')
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
-  // Same five rules as main.js's validateRegisterForm(), just returning an
-  // errors object instead of inserting <span class="field-error"> elements.
   function validateRegisterForm(): FormErrors {
     const newErrors: FormErrors = {}
 
     if (name.trim() === '') {
       newErrors.name = 'Please enter your full name.'
+    } else if (name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters long.'
     }
 
     const trimmedEmail = email.trim()
@@ -67,6 +57,8 @@ function Register() {
 
     if (password === '') {
       newErrors.password = 'Please enter a password.'
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters long.'
     }
 
     if (!role) {
@@ -76,22 +68,37 @@ function Register() {
     return newErrors
   }
 
-  function handleRegisterSubmit(event: FormEvent<HTMLFormElement>) {
-    // This is a frontend-only demo - never actually submit/create an account.
+  async function handleRegisterSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const newErrors = validateRegisterForm()
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length === 0) {
-      setMessage({ text: 'Registration form is valid.', type: 'success' })
-      // Frontend-only "success flow": no backend/account is created, so
-      // just send the user on to the Login page after a short pause long
-      // enough to actually read the success message. No React Router yet,
-      // so a plain window.location redirect (same as the original page).
-      window.setTimeout(() => {
-        window.location.href = 'login.html'
-      }, REDIRECT_DELAY_MS)
+      setIsSubmitting(true)
+      setMessage(null)
+
+      try {
+        const cleanedPhone = phone.trim().replace(/[\s-]/g, '')
+        await registerUser({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: cleanedPhone,
+          password,
+          role: role.toUpperCase(),
+        })
+
+        setMessage({ text: 'Account created successfully! Redirecting to login...', type: 'success' })
+        setTimeout(() => {
+          navigate('/login')
+        }, REDIRECT_DELAY_MS)
+      } catch (err) {
+        setMessage({
+          text: err instanceof Error ? err.message : 'Registration failed. Please try again.',
+          type: 'error',
+        })
+        setIsSubmitting(false)
+      }
     } else {
       setMessage({ text: 'Please fix the highlighted fields below.', type: 'error' })
     }
@@ -159,7 +166,7 @@ function Register() {
                 type="password"
                 id="reg-password"
                 name="password"
-                placeholder="Create a password"
+                placeholder="Create a password (min. 6 characters)"
                 value={password}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md w-full"
@@ -194,11 +201,17 @@ function Register() {
             </fieldset>
             {errors.role && <span className="text-red-600 text-sm block mt-1">{errors.role}</span>}
 
-            <button type="submit" className="px-4 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900">Create Account</button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Creating Account...' : 'Create Account'}
+            </button>
           </form>
 
           <p className="text-center text-sm text-gray-600 mt-6">
-            Already have an account? <a href="login.html" className="text-green-800 font-semibold no-underline hover:underline">Log in here</a>
+            Already have an account? <Link to="/login" className="text-green-800 font-semibold no-underline hover:underline">Log in here</Link>
           </p>
         </div>
       </div>
