@@ -232,7 +232,7 @@ function EquipmentEdit() {
           availabilityTo: formData.dateTo,
         })
 
-        setMessage({ text: 'Equipment listing updated successfully.', type: 'success' })
+        setMessage({ text: 'Equipment listing updated successfully. Redirecting to equipment details...', type: 'success' })
         setTimeout(() => {
           navigate(`/equipment/${id}`)
         }, 1200)
@@ -249,10 +249,36 @@ function EquipmentEdit() {
     }
   }
 
+  function handleRetryInitial() {
+    if (!id) return
+    setLoadingInitial(true)
+    setLoadError(null)
+    getEquipmentById(id)
+      .then((data) => {
+        setFormData({
+          name: data.name || '',
+          category: data.categoryValue || (data.category ? data.category.toLowerCase() : ''),
+          state: data.stateValue || (data.state ? data.state.toLowerCase().replace(/\s+/g, '-') : ''),
+          district: data.districtValue || (data.district ? data.district.toLowerCase() : ''),
+          village: data.villageValue || (data.village ? data.village.toLowerCase() : ''),
+          price: data.pricePerDay ? String(data.pricePerDay) : '',
+          dateFrom: data.availabilityFrom || '',
+          dateTo: data.availabilityTo || '',
+        })
+      })
+      .catch((err) => {
+        setLoadError(err instanceof Error ? err.message : 'Failed to load equipment details')
+      })
+      .finally(() => {
+        setLoadingInitial(false)
+      })
+  }
+
   if (loadingInitial) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-gray-600 text-lg">Loading equipment details for editing...</p>
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="w-10 h-10 border-4 border-green-800 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-gray-600 text-base font-medium">Loading equipment details for editing...</p>
       </div>
     )
   }
@@ -263,12 +289,21 @@ function EquipmentEdit() {
         <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-6 rounded-lg">
           <h2 className="text-xl font-bold mb-2">Unable to Load Equipment</h2>
           <p className="text-sm mb-5">{loadError}</p>
-          <Link
-            to="/equipment"
-            className="inline-block px-5 py-2.5 bg-green-800 text-white rounded-md font-semibold hover:bg-green-900"
-          >
-            &larr; Back to Browse Equipment
-          </Link>
+          <div className="flex justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleRetryInitial}
+              className="px-4 py-2 bg-green-800 text-white rounded-md font-semibold hover:bg-green-900 transition-colors cursor-pointer text-sm"
+            >
+              Retry
+            </button>
+            <Link
+              to="/equipment"
+              className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md font-semibold hover:bg-gray-50 transition-colors text-sm"
+            >
+              &larr; Back to Browse Equipment
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -289,9 +324,16 @@ function EquipmentEdit() {
           <p className="text-gray-500 mb-6 text-[0.95rem]">Update details for this equipment listing.</p>
 
           {message && (
-            <p className={`p-3 rounded-md mb-4 ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
-              {message.text}
-            </p>
+            <div className={`p-4 rounded-md mb-4 text-sm ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
+              <p>{message.text}</p>
+              {message.type === 'success' && (
+                <div className="mt-2 pt-2 border-t border-green-200">
+                  <Link to={`/equipment/${id}`} className="font-bold underline hover:text-green-950">
+                    Return to equipment details &rarr;
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
           <form className="flex flex-col" onSubmit={handleSubmit}>

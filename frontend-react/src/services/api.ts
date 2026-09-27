@@ -48,48 +48,95 @@ export interface CreateEquipmentData {
   availability?: string[]
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+export type UpdateEquipmentData = Partial<CreateEquipmentData>
+
+export interface DeleteEquipmentResponse {
+  message: string
+}
+
+/**
+ * Custom API Error class with HTTP status code and optional details.
+ */
+export class ApiError extends Error {
+  statusCode: number
+  details?: unknown
+
+  constructor(message: string, statusCode = 500, details?: unknown) {
+    super(message)
+    this.name = 'ApiError'
+    this.statusCode = statusCode
+    this.details = details
+  }
+}
+
+export const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+
+/**
+ * Centralized HTTP request helper with unified error extraction and network handling.
+ */
+async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`
+  let response: Response
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers,
+      },
+    })
+  } catch (networkError) {
+    throw new ApiError(
+      'Unable to connect to the AgriRent server. Please ensure the backend is running and reachable.',
+      0,
+      networkError
+    )
+  }
+
+  if (!response.ok) {
+    let errorMessage = `Request failed with status ${response.status}`
+    let errorData: unknown = null
+
+    try {
+      errorData = await response.json()
+      if (errorData && typeof errorData === 'object' && 'error' in errorData) {
+        errorMessage = String((errorData as { error: string }).error)
+      } else if (errorData && typeof errorData === 'object' && 'message' in errorData) {
+        errorMessage = String((errorData as { message: string }).message)
+      }
+    } catch {
+      // Non-JSON response body or empty
+    }
+
+    throw new ApiError(errorMessage, response.status, errorData)
+  }
+
+  return response.json()
+}
 
 /**
  * Fetch all equipment from the backend API.
  */
 export async function getEquipmentList(): Promise<Equipment[]> {
-  const response = await fetch(`${API_BASE_URL}/equipment`)
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null)
-    throw new Error(errorData?.error || `Failed to fetch equipment listings (status: ${response.status})`)
-  }
-  return response.json()
+  return apiRequest<Equipment[]>('/equipment')
 }
 
 /**
  * Fetch a single equipment item by its ID.
  */
 export async function getEquipmentById(id: string | number): Promise<Equipment> {
-  const response = await fetch(`${API_BASE_URL}/equipment/${id}`)
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null)
-    throw new Error(errorData?.error || `Failed to fetch equipment details (status: ${response.status})`)
-  }
-  return response.json()
+  return apiRequest<Equipment>(`/equipment/${id}`)
 }
 
 /**
  * Create a new equipment listing.
  */
 export async function createEquipment(data: CreateEquipmentData): Promise<Equipment> {
-  const response = await fetch(`${API_BASE_URL}/equipment`, {
+  return apiRequest<Equipment>('/equipment', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(data),
   })
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null)
-    throw new Error(errorData?.error || `Failed to create equipment listing (status: ${response.status})`)
-  }
-  return response.json()
 }
 
 /**
@@ -97,34 +144,21 @@ export async function createEquipment(data: CreateEquipmentData): Promise<Equipm
  */
 export async function updateEquipment(
   id: string | number,
-  data: Partial<CreateEquipmentData>
+  data: UpdateEquipmentData
 ): Promise<Equipment> {
-  const response = await fetch(`${API_BASE_URL}/equipment/${id}`, {
+  return apiRequest<Equipment>(`/equipment/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(data),
   })
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null)
-    throw new Error(errorData?.error || `Failed to update equipment listing (status: ${response.status})`)
-  }
-  return response.json()
 }
 
 /**
  * Delete an equipment listing.
  */
-export async function deleteEquipment(id: string | number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/equipment/${id}`, {
+export async function deleteEquipment(id: string | number): Promise<DeleteEquipmentResponse> {
+  return apiRequest<DeleteEquipmentResponse>(`/equipment/${id}`, {
     method: 'DELETE',
   })
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null)
-    throw new Error(errorData?.error || `Failed to delete equipment listing (status: ${response.status})`)
-  }
-  return response.json()
 }
 
 export const equipmentApi = {

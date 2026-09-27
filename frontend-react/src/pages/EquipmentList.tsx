@@ -1,10 +1,9 @@
 import { useState, useEffect, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import EquipmentCard from '../components/EquipmentCard'
 import { getEquipmentList, type Equipment } from '../services/api'
 
-// M9 Step 1: Equipment List page connected to backend API.
-// Based on the <section class="list-filter-bar"> + <section
-// class="equipment-section"> markup in frontend/equipment-list.html.
+// M9 Step 3: Equipment List page connected to backend API with enhanced states.
 function EquipmentList() {
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -124,19 +123,20 @@ function EquipmentList() {
       <section className="py-12">
         <div className="max-w-[1100px] mx-auto px-5">
           {loading && (
-            <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">Loading equipment...</p>
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-10 h-10 border-4 border-green-800 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-gray-600 text-base font-medium">Loading equipment listings...</p>
             </div>
           )}
 
           {error && !loading && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded-md text-center max-w-[600px] mx-auto mb-8">
-              <p className="font-semibold">Unable to load equipment</p>
-              <p className="text-sm mt-1">{error}</p>
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-6 rounded-lg text-center max-w-[600px] mx-auto mb-8">
+              <p className="font-semibold text-lg mb-1">Unable to Load Equipment</p>
+              <p className="text-sm mb-4">{error}</p>
               <button
                 type="button"
                 onClick={handleRetry}
-                className="mt-3 px-4 py-1.5 bg-green-800 text-white rounded text-sm font-semibold hover:bg-green-900 cursor-pointer"
+                className="px-5 py-2 bg-green-800 text-white rounded-md text-sm font-semibold hover:bg-green-900 transition-colors cursor-pointer"
               >
                 Retry
               </button>
@@ -145,16 +145,29 @@ function EquipmentList() {
 
           {!loading && !error && (
             <>
-              <h2 className="text-[1.6rem] mb-6">{equipment.length} results</h2>
-
               {equipment.length === 0 ? (
-                <p className="col-span-full text-center text-gray-500 py-8">No equipment found</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {equipment.map((item: Equipment) => (
-                    <EquipmentCard key={item.id} equipment={item} />
-                  ))}
+                <div className="text-center py-16 px-4 bg-gray-50 rounded-xl border border-dashed border-gray-300 my-4">
+                  <div className="text-4xl mb-3">🚜</div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">No Equipment Available</h3>
+                  <p className="text-gray-600 max-w-md mx-auto mb-6 text-sm">
+                    There are currently no equipment listings available. Be the first to list your agricultural machinery for rent!
+                  </p>
+                  <Link
+                    to="/equipment/new"
+                    className="inline-block px-5 py-2.5 bg-green-800 text-white rounded-md font-semibold hover:bg-green-900 transition-colors"
+                  >
+                    List Your Equipment
+                  </Link>
                 </div>
+              ) : (
+                <>
+                  <h2 className="text-[1.6rem] mb-6">{equipment.length} results</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {equipment.map((item: Equipment) => (
+                      <EquipmentCard key={item.id} equipment={item} />
+                    ))}
+                  </div>
+                </>
               )}
             </>
           )}

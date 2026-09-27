@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { locationData } from '../data/equipmentData.js'
 import { createEquipment } from '../services/api'
 
@@ -61,7 +62,7 @@ const STATE_LABELS: Record<string, string> = {
   rajasthan: 'Rajasthan',
 }
 
-// M9 Step 1: Owner "List Equipment" page connected to backend API.
+// M9 Step 1 + Step 3: Owner "List Equipment" page connected to backend API.
 // Based on the <section class="auth-section"> markup in frontend/equipment-new.html.
 function EquipmentNew() {
   const [formData, setFormData] = useState<FormData>({
@@ -76,6 +77,7 @@ function EquipmentNew() {
   })
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
+  const [createdId, setCreatedId] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
   // Generic change handler for plain fields
@@ -172,7 +174,7 @@ function EquipmentNew() {
         const villageOption = villageOptions.find((v) => v.value === formData.village)
         const villageLabel = villageOption?.label || formData.village
 
-        await createEquipment({
+        const created = await createEquipment({
           name: formData.name.trim(),
           category: CATEGORY_LABELS[formData.category] || formData.category,
           categoryValue: formData.category,
@@ -192,6 +194,7 @@ function EquipmentNew() {
           owner: 'Farm Owner',
         })
 
+        setCreatedId(created.id)
         setMessage({ text: 'Equipment listing submitted successfully.', type: 'success' })
         setFormData({
           name: '',
@@ -224,9 +227,16 @@ function EquipmentNew() {
           <p className="text-gray-500 mb-6 text-[0.95rem]">Add your equipment so Farmers nearby can find and rent it.</p>
 
           {message && (
-            <p className={`p-3 rounded-md mb-4 ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
-              {message.text}
-            </p>
+            <div className={`p-4 rounded-md mb-4 text-sm ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
+              <p>{message.text}</p>
+              {createdId && message.type === 'success' && (
+                <div className="mt-2 pt-2 border-t border-green-200">
+                  <Link to={`/equipment/${createdId}`} className="font-bold underline hover:text-green-950">
+                    View new listing &rarr;
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
           <form className="flex flex-col" onSubmit={handleListingSubmit}>
