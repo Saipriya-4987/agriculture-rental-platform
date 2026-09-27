@@ -97,6 +97,31 @@ export interface CreateBookingData {
   handoverMethod?: 'PICKUP' | 'DELIVERY' | string
 }
 
+export interface Review {
+  id: number
+  bookingId: number
+  reviewerId: number
+  equipmentId: number
+  rating: number
+  comment?: string | null
+  createdAt?: string
+  reviewer?: {
+    id: number
+    name: string
+  }
+}
+
+export interface CreateReviewData {
+  bookingId: number
+  rating: number
+  comment?: string
+}
+
+export interface CreateReviewResponse {
+  message: string
+  review: Review
+}
+
 export interface Booking {
   id: number
   equipmentId: number
@@ -112,6 +137,8 @@ export interface Booking {
   updatedAt?: string
   equipment?: Partial<Equipment>
   farmer?: Partial<SafeUser>
+  reviews?: Review[]
+  isReviewed?: boolean
 }
 
 export interface CreateBookingResponse {
@@ -432,6 +459,30 @@ export async function completeBooking(id: number): Promise<{ message: string; bo
   return updateBookingStatus(id, 'COMPLETED')
 }
 
+/**
+ * Submit a review for a completed rental.
+ * POST /api/reviews
+ */
+export async function createReview(data: CreateReviewData): Promise<CreateReviewResponse> {
+  return apiRequest<CreateReviewResponse>('/reviews', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Fetch all reviews for a specific equipment item.
+ * GET /api/equipment/:id/reviews
+ */
+export async function getEquipmentReviews(equipmentId: string | number): Promise<Review[]> {
+  return apiRequest<Review[]>(`/equipment/${equipmentId}/reviews`)
+}
+
+export const reviewApi = {
+  create: createReview,
+  getByEquipment: getEquipmentReviews,
+}
+
 export const bookingApi = {
   create: createBooking,
   getMy: getMyBookings,
@@ -447,6 +498,7 @@ export const bookingApi = {
 export const equipmentApi = {
   getAll: getEquipmentList,
   getById: getEquipmentById,
+  getReviews: getEquipmentReviews,
   create: createEquipment,
   update: updateEquipment,
   delete: deleteEquipment,
@@ -456,4 +508,5 @@ export default {
   ...equipmentApi,
   ...authApi,
   ...bookingApi,
+  ...reviewApi,
 }

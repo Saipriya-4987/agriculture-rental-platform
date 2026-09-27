@@ -7,14 +7,10 @@ import {
   createBooking,
   isAuthenticated,
   getUserRole,
+  getEquipmentReviews,
   type Equipment,
+  type Review,
 } from '../services/api'
-
-interface Review {
-  stars: string
-  text: string
-  author: string
-}
 
 interface FormErrors {
   rentalFrom?: string
@@ -27,8 +23,6 @@ interface Message {
 }
 
 const DEFAULT_OWNER_NAME = 'Ramesh Naidu'
-const DEFAULT_RATING_STARS = '★★★★☆'
-const DEFAULT_RATING_COUNT = '(4.2 · 18 reviews)'
 
 const DEFAULT_DESCRIPTION = '45 HP diesel tractor, well maintained, suitable for ploughing, '
   + 'tilling and general farm haulage. Comes with standard 2WD and power steering.'
@@ -46,19 +40,6 @@ const DEFAULT_AVAILABILITY_WINDOWS: string[] = [
   '25 Oct 2026 – 31 Oct 2026',
 ]
 
-const REVIEWS: Review[] = [
-  {
-    stars: '★★★★★',
-    text: '"Tractor was in great condition and Ramesh was easy to coordinate pickup with."',
-    author: '— Suresh K., Farmer',
-  },
-  {
-    stars: '★★★★☆',
-    text: '"Good machine, slightly delayed handover but worked fine for our harvest."',
-    author: '— Lakshmi P., Farmer',
-  },
-]
-
 function EquipmentDetails() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -66,6 +47,10 @@ function EquipmentDetails() {
   const [equipment, setEquipment] = useState<Equipment | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewsLoading, setReviewsLoading] = useState<boolean>(true)
+  const [reviewsError, setReviewsError] = useState<string | null>(null)
 
   const [rentalFrom, setRentalFrom] = useState<string>('')
   const [rentalUntil, setRentalUntil] = useState<string>('')
@@ -81,11 +66,11 @@ function EquipmentDetails() {
   useEffect(() => {
     let ignore = false
 
-    const fetchPromise = !id
+    const fetchEquipment = !id
       ? Promise.reject(new Error('No equipment ID provided'))
       : getEquipmentById(id)
 
-    fetchPromise
+    fetchEquipment
       .then((data) => {
         if (!ignore) {
           setEquipment(data)
@@ -100,6 +85,28 @@ function EquipmentDetails() {
       .finally(() => {
         if (!ignore) {
           setLoading(false)
+        }
+      })
+
+    const fetchReviews = !id
+      ? Promise.resolve([])
+      : getEquipmentReviews(id)
+
+    fetchReviews
+      .then((revs) => {
+        if (!ignore) {
+          setReviews(revs)
+          setReviewsError(null)
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setReviewsError(err instanceof Error ? err.message : 'Failed to load reviews')
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setReviewsLoading(false)
         }
       })
 
@@ -237,10 +244,10 @@ function EquipmentDetails() {
   const ownerName = equipment.owner || DEFAULT_OWNER_NAME
   const ratingStars = equipment.rating !== undefined && equipment.rating > 0
     ? '★'.repeat(Math.min(5, Math.max(1, Math.round(equipment.rating)))) + '☆'.repeat(Math.max(0, 5 - Math.min(5, Math.max(1, Math.round(equipment.rating)))))
-    : DEFAULT_RATING_STARS
+    : '☆☆☆☆☆'
   const ratingCount = equipment.ratingCount !== undefined && equipment.ratingCount > 0
     ? `(${equipment.rating} · ${equipment.ratingCount} reviews)`
-    : DEFAULT_RATING_COUNT
+    : '(No reviews yet)'
 
   const description = equipment.description || DEFAULT_DESCRIPTION
   const features = equipment.features && equipment.features.length > 0 ? equipment.features : DEFAULT_FEATURES
@@ -481,17 +488,102 @@ function EquipmentDetails() {
       </section>
 
       {/* REVIEWS SECTION */}
-      <section className="pb-12">
+      <section className="pb-16 pt-8 border-t border-gray-100 bg-gray-50/50">
         <div className="max-w-[1100px] mx-auto px-5">
-          <h2 className="text-[1.4rem] mb-5">Reviews <span className="text-sm font-normal text-gray-500 ml-2">4.2 average · 18 reviews</span></h2>
-
-          {REVIEWS.map((review) => (
-            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-3" key={review.author}>
-              <p className="text-amber-500 text-sm">{review.stars}</p>
-              <p className="my-1.5 mx-0">{review.text}</p>
-              <p className="text-gray-500 text-sm">{review.author}</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Farmer Reviews & Ratings</h2>
+              <p className="text-gray-600 text-sm mt-0.5">
+                Authentic feedback from farmers who completed rentals for this equipment.
+              </p>
             </div>
-          ))}
+            {equipment && (
+              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-xs">
+                <span className="text-amber-500 text-lg">★</span>
+                <span className="font-bold text-gray-900 text-base">
+                  {equipment.rating ? equipment.rating.toFixed(1) : (reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 'New')}
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            )}
+          </div>
+
+          {reviewsLoading ? (
+            <div className="text-center py-12 bg-white border border-gray-200 rounded-xl shadow-xs">
+              <div className="inline-block w-6 h-6 border-2 border-green-800 border-t-transparent rounded-full animate-spin mb-2"></div>
+              <p className="text-gray-500 text-sm">Loading verified reviews...</p>
+            </div>
+          ) : reviewsError ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-sm text-red-700 shadow-xs">
+              <p className="mb-3 font-medium">{reviewsError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (id) {
+                    setReviewsLoading(true)
+                    getEquipmentReviews(id)
+                      .then((revs) => {
+                        setReviews(revs)
+                        setReviewsError(null)
+                      })
+                      .catch((err) => setReviewsError(err instanceof Error ? err.message : 'Failed to load reviews'))
+                      .finally(() => setReviewsLoading(false))
+                  }
+                }}
+                className="px-4 py-1.5 bg-red-600 text-white font-semibold text-xs rounded-md hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-12 bg-white border border-gray-200 rounded-xl p-6 shadow-xs">
+              <span className="text-3xl mb-2 block">🌾</span>
+              <h3 className="font-bold text-gray-800 text-sm mb-1">No Reviews Yet</h3>
+              <p className="text-gray-500 text-xs max-w-[360px] mx-auto">
+                No farmer reviews have been submitted for this equipment yet. Be the first to rent and share your experience!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reviews.map((rev) => (
+                <div key={rev.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-green-100 text-green-900 font-bold text-xs flex items-center justify-center border border-green-200">
+                        {rev.reviewer?.name ? rev.reviewer.name.charAt(0).toUpperCase() : 'F'}
+                      </div>
+                      <div>
+                        <strong className="text-sm text-gray-900 block leading-tight">
+                          {rev.reviewer?.name || 'Verified Farmer'}
+                        </strong>
+                        <span className="text-[11px] text-gray-400">
+                          {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'Verified Rental'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-0.5 text-amber-500 text-sm">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} className={i < rev.rating ? 'text-amber-500' : 'text-gray-200'}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {rev.comment ? (
+                    <p className="text-sm text-gray-700 mt-2">
+                      "{rev.comment}"
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400 mt-2 italic">
+                      No written feedback provided.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </>

@@ -7,6 +7,7 @@ const {
   updateEquipment,
   deleteEquipment
 } = require('../controllers/equipmentController')
+const { getEquipmentReviews } = require('../controllers/reviewController')
 const { requireAuth, requireRole } = require('../middleware/authMiddleware')
 
 // Public GET routes
@@ -15,6 +16,9 @@ router.get('/', getAllEquipment)
 
 // GET /api/equipment/:id
 router.get('/:id', getEquipmentById)
+
+// GET /api/equipment/:id/reviews
+router.get('/:id/reviews', getEquipmentReviews)
 
 // Protected Write routes: OWNER only
 // POST /api/equipment

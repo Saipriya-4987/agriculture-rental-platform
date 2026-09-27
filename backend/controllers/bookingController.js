@@ -68,7 +68,14 @@ const formatBooking = (booking) => {
       name: booking.farmer.name,
       email: booking.farmer.email,
       phone: booking.farmer.phone
-    } : undefined
+    } : undefined,
+    reviews: booking.reviews ? booking.reviews.map(r => ({
+      id: r.id,
+      rating: Number(r.rating),
+      comment: r.comment,
+      createdAt: r.created_at
+    })) : [],
+    isReviewed: Boolean(booking.reviews && booking.reviews.length > 0)
   }
 }
 
@@ -214,7 +221,8 @@ const getMyBookings = async (req, res, next) => {
       where,
       include: {
         equipment: true,
-        farmer: true
+        farmer: true,
+        reviews: true
       },
       orderBy: { created_at: 'desc' }
     })

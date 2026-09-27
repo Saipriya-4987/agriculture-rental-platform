@@ -5,6 +5,7 @@ import {
   cancelBooking,
   activateBooking,
   completeBooking,
+  createReview,
   type Booking,
 } from '../services/api'
 
@@ -17,6 +18,13 @@ export default function MyBookings() {
   const [activeTab, setActiveTab] = useState<TabType>('all')
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [activeActionId, setActiveActionId] = useState<number | null>(null)
+
+  // Review form state
+  const [reviewingBookingId, setReviewingBookingId] = useState<number | null>(null)
+  const [reviewRating, setReviewRating] = useState<number>(5)
+  const [reviewComment, setReviewComment] = useState<string>('')
+  const [isSubmittingReview, setIsSubmittingReview] = useState<boolean>(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
 
   useEffect(() => {
     loadBookings()
@@ -97,6 +105,57 @@ export default function MyBookings() {
       })
     } finally {
       setActiveActionId(null)
+    }
+  }
+
+  function handleStartReview(booking: Booking) {
+    setReviewingBookingId(booking.id)
+    setReviewRating(5)
+    setReviewComment('')
+    setReviewError(null)
+  }
+
+  function handleCancelReview() {
+    setReviewingBookingId(null)
+    setReviewRating(5)
+    setReviewComment('')
+    setReviewError(null)
+  }
+
+  async function handleSubmitReview(e: React.FormEvent, bookingId: number) {
+    e.preventDefault()
+    setIsSubmittingReview(true)
+    setReviewError(null)
+    try {
+      const res = await createReview({
+        bookingId,
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+      })
+
+      setActionMessage({
+        text: 'Review submitted successfully! Thank you for rating this equipment.',
+        type: 'success',
+      })
+
+      setBookings((prev) =>
+        prev.map((b) => {
+          if (b.id === bookingId) {
+            return {
+              ...b,
+              isReviewed: true,
+              reviews: [res.review, ...(b.reviews || [])],
+            }
+          }
+          return b
+        })
+      )
+
+      setReviewingBookingId(null)
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : 'Failed to submit review.')
+    } finally {
+      setIsSubmittingReview(false)
     }
   }
 
@@ -411,6 +470,107 @@ export default function MyBookings() {
                   </div>
                 )}
 
+                {/* Completed Rental Review Notice / Badge */}
+                {booking.status === 'COMPLETED' && (
+                  <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs">
+                    {booking.isReviewed || (booking.reviews && booking.reviews.length > 0) ? (
+                      <div className="flex items-center justify-between text-gray-700">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <span className="text-amber-500 font-bold">★ Reviewed</span>
+                          <span>Rating: {booking.reviews?.[0]?.rating || 5}/5</span>
+                        </span>
+                        {booking.reviews?.[0]?.comment && (
+                          <span className="text-gray-500 italic truncate max-w-[280px]">
+                            "{booking.reviews[0].comment}"
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-gray-700">
+                        <span>
+                          ⭐ <strong>Rental Complete:</strong> How was your experience? Share feedback to help other farmers!
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Inline Review Form for Completed Bookings */}
+                {reviewingBookingId === booking.id && (
+                  <form
+                    onSubmit={(e) => handleSubmitReview(e, booking.id)}
+                    className="mt-3 p-4 bg-amber-50/60 border border-amber-200 rounded-xl"
+                  >
+                    <h4 className="text-sm font-bold text-gray-900 mb-2">
+                      Review & Rate {booking.equipment?.name || 'Equipment'}
+                    </h4>
+
+                    {reviewError && (
+                      <div className="p-2 mb-3 bg-red-100 border border-red-200 text-red-800 text-xs rounded-md">
+                        {reviewError}
+                      </div>
+                    )}
+
+                    {/* Star Rating Selector */}
+                    <div className="mb-3">
+                      <label className="text-xs font-semibold block text-gray-700 mb-1">
+                        Your Rating (1 to 5 Stars) *
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewRating(star)}
+                            className="text-2xl transition-transform hover:scale-110 cursor-pointer focus:outline-none"
+                            title={`${star} Star${star > 1 ? 's' : ''}`}
+                          >
+                            <span className={star <= reviewRating ? 'text-amber-500' : 'text-gray-300'}>
+                              ★
+                            </span>
+                          </button>
+                        ))}
+                        <span className="ml-2 text-xs font-bold text-gray-700">
+                          {reviewRating} of 5 Stars
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Optional Comment */}
+                    <div className="mb-3">
+                      <label htmlFor={`review-comment-${booking.id}`} className="text-xs font-semibold block text-gray-700 mb-1">
+                        Written Feedback / Experience (Optional)
+                      </label>
+                      <textarea
+                        id={`review-comment-${booking.id}`}
+                        rows={3}
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="Describe how the machinery performed, condition, handover experience, etc."
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+                      ></textarea>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCancelReview}
+                        disabled={isSubmittingReview}
+                        className="px-3.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 cursor-pointer disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmittingReview}
+                        className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-green-800 text-white hover:bg-green-900 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                      >
+                        {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
                 {/* Actions Bar */}
                 <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
                   <div className="text-xs text-gray-500">
@@ -452,6 +612,20 @@ export default function MyBookings() {
                         {activeActionId === booking.id ? 'Completing...' : 'Return Equipment (Complete Rental)'}
                       </button>
                     )}
+
+                    {/* Leave Review Action for Completed Bookings */}
+                    {booking.status === 'COMPLETED' &&
+                      !booking.isReviewed &&
+                      (!booking.reviews || booking.reviews.length === 0) &&
+                      reviewingBookingId !== booking.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartReview(booking)}
+                          className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors cursor-pointer shadow-xs"
+                        >
+                          ★ Leave Review
+                        </button>
+                      )}
 
                     <Link
                       to={`/equipment/${booking.equipmentId}`}
