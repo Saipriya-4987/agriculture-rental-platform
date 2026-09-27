@@ -55,10 +55,13 @@ const formatBooking = (booking) => {
       name: booking.equipment.name,
       category: booking.equipment.category,
       pricePerDay: Number(booking.equipment.price_per_day),
+      price_per_day: Number(booking.equipment.price_per_day),
       image: booking.equipment.image,
       city: booking.equipment.city,
       state: booking.equipment.state,
-      owner: booking.equipment.owner
+      owner: booking.equipment.owner,
+      ownerId: booking.equipment.owner_id || null,
+      categoryValue: booking.equipment.category_value || ''
     } : undefined,
     farmer: booking.farmer ? {
       id: booking.farmer.id,
@@ -191,11 +194,24 @@ const createBooking = async (req, res, next) => {
 /**
  * Get current user's bookings (Farmer view)
  * GET /api/bookings/my
+ * Supports optional ?status=... or ?type=current|past
  */
 const getMyBookings = async (req, res, next) => {
   try {
+    const { status, type } = req.query
+    const where = { farmer_id: req.user.id }
+
+    if (status) {
+      const statusList = String(status).split(',').map((s) => s.trim().toUpperCase())
+      where.status = statusList.length === 1 ? statusList[0] : { in: statusList }
+    } else if (type === 'current') {
+      where.status = { in: ['PENDING', 'CONFIRMED', 'ACTIVE'] }
+    } else if (type === 'past') {
+      where.status = { in: ['COMPLETED', 'CANCELLED', 'REJECTED'] }
+    }
+
     const bookings = await prisma.booking.findMany({
-      where: { farmer_id: req.user.id },
+      where,
       include: {
         equipment: true,
         farmer: true
@@ -212,10 +228,12 @@ const getMyBookings = async (req, res, next) => {
 /**
  * Get bookings for equipment owned by current owner
  * GET /api/bookings/owner
+ * Supports optional ?status=... or ?type=current|past
  */
 const getOwnerBookings = async (req, res, next) => {
   try {
     const ownerId = req.user.id
+    const { status, type } = req.query
 
     // Retrieve equipment belonging to this owner
     const ownerEquipments = await prisma.equipment.findMany({
@@ -231,10 +249,21 @@ const getOwnerBookings = async (req, res, next) => {
 
     const equipmentIds = ownerEquipments.map((eq) => eq.id)
 
+    const where = {
+      equipment_id: { in: equipmentIds }
+    }
+
+    if (status) {
+      const statusList = String(status).split(',').map((s) => s.trim().toUpperCase())
+      where.status = statusList.length === 1 ? statusList[0] : { in: statusList }
+    } else if (type === 'current') {
+      where.status = { in: ['PENDING', 'CONFIRMED', 'ACTIVE'] }
+    } else if (type === 'past') {
+      where.status = { in: ['COMPLETED', 'CANCELLED', 'REJECTED'] }
+    }
+
     const bookings = await prisma.booking.findMany({
-      where: {
-        equipment_id: { in: equipmentIds }
-      },
+      where,
       include: {
         equipment: true,
         farmer: true

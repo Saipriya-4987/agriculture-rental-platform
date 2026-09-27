@@ -17,7 +17,7 @@ const { requireAuth, requireRole } = require('../middleware/authMiddleware')
 router.post('/', requireAuth, requireRole('FARMER'), createBooking)
 
 // GET /api/bookings/my - Authenticated farmer views their own bookings
-router.get('/my', requireAuth, getMyBookings)
+router.get('/my', requireAuth, requireRole('FARMER'), getMyBookings)
 
 // GET /api/bookings/owner - Authenticated owner views bookings for their equipment
 router.get('/owner', requireAuth, requireRole('OWNER'), getOwnerBookings)

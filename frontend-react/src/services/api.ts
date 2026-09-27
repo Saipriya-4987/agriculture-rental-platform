@@ -350,20 +350,33 @@ export async function createBooking(data: CreateBookingData): Promise<CreateBook
   })
 }
 
-/**
- * Fetch the authenticated farmer's bookings.
- * GET /api/bookings/my
- */
-export async function getMyBookings(): Promise<Booking[]> {
-  return apiRequest<Booking[]>('/bookings/my')
+export interface BookingFilterParams {
+  status?: string
+  type?: 'current' | 'past' | 'all'
 }
 
 /**
- * Fetch bookings for equipment owned by authenticated owner.
+ * Fetch the authenticated farmer's bookings with optional status filtering.
+ * GET /api/bookings/my
+ */
+export async function getMyBookings(params?: BookingFilterParams): Promise<Booking[]> {
+  const query = new URLSearchParams()
+  if (params?.status) query.set('status', params.status)
+  if (params?.type && params.type !== 'all') query.set('type', params.type)
+  const queryString = query.toString() ? `?${query.toString()}` : ''
+  return apiRequest<Booking[]>(`/bookings/my${queryString}`)
+}
+
+/**
+ * Fetch bookings for equipment owned by authenticated owner with optional status filtering.
  * GET /api/bookings/owner
  */
-export async function getOwnerBookings(): Promise<Booking[]> {
-  return apiRequest<Booking[]>('/bookings/owner')
+export async function getOwnerBookings(params?: BookingFilterParams): Promise<Booking[]> {
+  const query = new URLSearchParams()
+  if (params?.status) query.set('status', params.status)
+  if (params?.type && params.type !== 'all') query.set('type', params.type)
+  const queryString = query.toString() ? `?${query.toString()}` : ''
+  return apiRequest<Booking[]>(`/bookings/owner${queryString}`)
 }
 
 /**
