@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { getEquipmentById, type Equipment } from '../services/api'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { getEquipmentById, deleteEquipment, type Equipment } from '../services/api'
 
 interface Review {
   stars: string
@@ -53,6 +53,7 @@ const REVIEWS: Review[] = [
 
 function EquipmentDetails() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
 
   const [equipment, setEquipment] = useState<Equipment | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -62,6 +63,10 @@ function EquipmentDetails() {
   const [rentalUntil, setRentalUntil] = useState<string>('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
+
+  const [isDeleting, setIsDeleting] = useState<boolean>(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteSuccess, setDeleteSuccess] = useState<boolean>(false)
 
   useEffect(() => {
     let ignore = false
@@ -121,6 +126,25 @@ function EquipmentDetails() {
       setMessage({ text: 'Rental request submitted successfully.', type: 'success' })
     } else {
       setMessage({ text: 'Please fix the highlighted fields below.', type: 'error' })
+    }
+  }
+
+  async function handleDelete() {
+    if (!id || !equipment) return
+    const confirmed = window.confirm(`Are you sure you want to delete "${equipment.name}"? This action cannot be undone.`)
+    if (!confirmed) return
+
+    try {
+      setIsDeleting(true)
+      setDeleteError(null)
+      await deleteEquipment(id)
+      setDeleteSuccess(true)
+      setTimeout(() => {
+        navigate('/equipment')
+      }, 1000)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete equipment.')
+      setIsDeleting(false)
     }
   }
 
@@ -268,6 +292,40 @@ function EquipmentDetails() {
 
                   <button type="submit" className="px-4 py-2 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer">Request to Rent</button>
                 </form>
+              </div>
+
+              {/* OWNER ACTIONS: Edit and Delete */}
+              <div className="mb-6 pt-6 border-t border-gray-200">
+                <h2 className="text-[1.1rem] mb-3">Manage Listing</h2>
+
+                {deleteError && (
+                  <p className="p-3 rounded-md mb-3 bg-red-100 text-red-800 text-sm" aria-live="polite">
+                    {deleteError}
+                  </p>
+                )}
+
+                {deleteSuccess ? (
+                  <p className="p-3 rounded-md mb-3 bg-green-100 text-green-800 text-sm" aria-live="polite">
+                    Equipment deleted successfully. Redirecting to equipment list...
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    <Link
+                      to={`/equipment/${equipment.id}/edit`}
+                      className="px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-800 font-semibold text-sm hover:bg-gray-100 transition-colors"
+                    >
+                      Edit Equipment
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="px-4 py-2 border border-red-300 rounded-md bg-red-50 text-red-700 font-semibold text-sm hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete Equipment'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

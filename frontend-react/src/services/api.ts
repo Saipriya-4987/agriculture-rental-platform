@@ -92,10 +92,47 @@ export async function createEquipment(data: CreateEquipmentData): Promise<Equipm
   return response.json()
 }
 
+/**
+ * Update an existing equipment listing.
+ */
+export async function updateEquipment(
+  id: string | number,
+  data: Partial<CreateEquipmentData>
+): Promise<Equipment> {
+  const response = await fetch(`${API_BASE_URL}/equipment/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    throw new Error(errorData?.error || `Failed to update equipment listing (status: ${response.status})`)
+  }
+  return response.json()
+}
+
+/**
+ * Delete an equipment listing.
+ */
+export async function deleteEquipment(id: string | number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/equipment/${id}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null)
+    throw new Error(errorData?.error || `Failed to delete equipment listing (status: ${response.status})`)
+  }
+  return response.json()
+}
+
 export const equipmentApi = {
   getAll: getEquipmentList,
   getById: getEquipmentById,
   create: createEquipment,
+  update: updateEquipment,
+  delete: deleteEquipment,
 }
 
 export default equipmentApi
