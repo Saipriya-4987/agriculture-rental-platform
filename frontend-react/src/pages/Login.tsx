@@ -75,21 +75,30 @@ function Login() {
   }
 
   return (
-    <section className="py-15 flex justify-center">
+    <section className="py-[60px] flex justify-center bg-[#f9fafb]">
       <div className="w-full max-w-[420px] px-5">
-        <div className="bg-white border border-gray-200 rounded-xl p-10">
-          <h1 className="text-[1.5rem] mb-1.5">Log in to AgriRent</h1>
-          <p className="text-gray-500 mb-6 text-[0.95rem]">Welcome back. Enter your details to continue.</p>
+        <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-8 sm:p-10">
+          <h1 className="text-[1.5rem] font-bold text-[#1f2937] mb-1.5">Log in to AgriRent</h1>
+          <p className="text-[#6b7280] mb-6 text-[0.95rem]">Welcome back. Enter your details to continue.</p>
 
           {message && (
-            <p className={`p-3 rounded-md mb-6 font-semibold text-[0.9rem] ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
+            <p
+              className={`p-3 rounded-[6px] mb-6 font-semibold text-[0.9rem] ${
+                message.type === 'success'
+                  ? 'bg-green-100 text-[#166534] border border-[#d1fae5]'
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}
+              aria-live="polite"
+            >
               {message.text}
             </p>
           )}
 
           <form className="flex flex-col" onSubmit={handleLoginSubmit}>
             <div className="mb-4">
-              <label htmlFor="login-identifier" className="text-sm font-semibold mb-1.5 block">Email or Phone Number</label>
+              <label htmlFor="login-identifier" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Email or Phone Number
+              </label>
               <input
                 type="text"
                 id="login-identifier"
@@ -97,13 +106,15 @@ function Login() {
                 placeholder="you@example.com or 9876543210"
                 value={identifier}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setIdentifier(event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.identifier && <span className="text-red-600 text-sm block mt-1">{errors.identifier}</span>}
+              {errors.identifier && <span className="text-red-600 text-xs block mt-1">{errors.identifier}</span>}
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="login-password" className="text-sm font-semibold mb-1.5 block">Password</label>
+            <div className="mb-2">
+              <label htmlFor="login-password" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Password
+              </label>
               <input
                 type="password"
                 id="login-password"
@@ -111,22 +122,29 @@ function Login() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.password && <span className="text-red-600 text-sm block mt-1">{errors.password}</span>}
+              {errors.password && <span className="text-red-600 text-xs block mt-1">{errors.password}</span>}
             </div>
+
+            <a href="#" className="self-end text-[0.85rem] text-[#166534] hover:underline mb-4">
+              Forgot password?
+            </a>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-auth"
             >
               {isSubmitting ? 'Logging in...' : 'Log In'}
             </button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-600">
-            Don't have an account? <Link to="/register" className="text-green-800 font-semibold no-underline hover:underline">Register here</Link>
+          <p className="text-center mt-6 text-[0.9rem] text-[#6b7280]">
+            Don't have an account?{' '}
+            <Link to="/register" className="text-[#166534] font-semibold hover:underline">
+              Register here
+            </Link>
           </p>
         </div>
       </div>

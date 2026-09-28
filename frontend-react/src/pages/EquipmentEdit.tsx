@@ -310,25 +310,32 @@ function EquipmentEdit() {
   }
 
   return (
-    <section className="py-15 flex justify-center">
-      <div className="w-full max-w-[420px] px-5">
-        <div className="bg-white border border-gray-200 rounded-xl p-10">
+    <section className="py-12 flex justify-center bg-[#f9fafb]">
+      <div className="w-full max-w-[600px] px-5">
+        <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-8 sm:p-10">
           <Link
             to={`/equipment/${id}`}
-            className="inline-block mb-4 text-green-800 font-semibold text-sm hover:underline"
+            className="inline-block mb-4 text-[#166534] font-semibold text-sm hover:underline"
           >
             &larr; Back to equipment details
           </Link>
 
-          <h1 className="text-[1.5rem] mb-1.5">Edit equipment</h1>
-          <p className="text-gray-500 mb-6 text-[0.95rem]">Update details for this equipment listing.</p>
+          <h1 className="text-[1.5rem] font-bold text-[#1f2937] mb-1.5">Edit equipment</h1>
+          <p className="text-[#6b7280] mb-6 text-[0.95rem]">Update details for this equipment listing.</p>
 
           {message && (
-            <div className={`p-4 rounded-md mb-4 text-sm ${message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`} aria-live="polite">
+            <div
+              className={`p-4 rounded-[6px] mb-4 text-sm font-medium ${
+                message.type === 'success'
+                  ? 'bg-green-100 text-[#166534] border border-[#d1fae5]'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}
+              aria-live="polite"
+            >
               <p>{message.text}</p>
               {message.type === 'success' && (
-                <div className="mt-2 pt-2 border-t border-green-200">
-                  <Link to={`/equipment/${id}`} className="font-bold underline hover:text-green-950">
+                <div className="mt-2 pt-2 border-t border-[#d1fae5]">
+                  <Link to={`/equipment/${id}`} className="font-bold underline hover:text-[#14532d]">
                     Return to equipment details &rarr;
                   </Link>
                 </div>
@@ -338,7 +345,9 @@ function EquipmentEdit() {
 
           <form className="flex flex-col" onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="listing-name" className="text-sm font-semibold mb-1.5">Equipment Name</label>
+              <label htmlFor="listing-name" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Equipment Name
+              </label>
               <input
                 type="text"
                 id="listing-name"
@@ -346,20 +355,22 @@ function EquipmentEdit() {
                 placeholder="e.g. Mahindra 575 DI"
                 value={formData.name}
                 onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.name && <span className="text-red-600 text-sm block mt-1">{errors.name}</span>}
+              {errors.name && <span className="text-red-600 text-xs block mt-1">{errors.name}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="listing-category" className="text-sm font-semibold mb-1.5">Category</label>
+              <label htmlFor="listing-category" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Category
+              </label>
               <select
                 id="listing-category"
                 name="category"
                 aria-label="Category"
                 value={formData.category}
                 onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full bg-white focus:outline-none focus:border-[#166534]"
               >
                 <option value="">Select category</option>
                 <option value="tractor">Tractor</option>
@@ -369,18 +380,20 @@ function EquipmentEdit() {
                 <option value="sprayer">Sprayer</option>
                 <option value="other">Other</option>
               </select>
-              {errors.category && <span className="text-red-600 text-sm block mt-1">{errors.category}</span>}
+              {errors.category && <span className="text-red-600 text-xs block mt-1">{errors.category}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="listing-state" className="text-sm font-semibold mb-1.5">State</label>
+              <label htmlFor="listing-state" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                State
+              </label>
               <select
                 id="listing-state"
                 name="state"
                 aria-label="State"
                 value={formData.state}
                 onChange={handleStateChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full bg-white focus:outline-none focus:border-[#166534]"
               >
                 <option value="">Select your state</option>
                 <option value="andhra-pradesh">Andhra Pradesh</option>
@@ -394,18 +407,20 @@ function EquipmentEdit() {
                 <option value="uttar-pradesh">Uttar Pradesh</option>
                 <option value="rajasthan">Rajasthan</option>
               </select>
-              {errors.state && <span className="text-red-600 text-sm block mt-1">{errors.state}</span>}
+              {errors.state && <span className="text-red-600 text-xs block mt-1">{errors.state}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="listing-district" className="text-sm font-semibold mb-1.5">District</label>
+              <label htmlFor="listing-district" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                District
+              </label>
               <select
                 id="listing-district"
                 name="district"
                 aria-label="District"
                 value={formData.district}
                 onChange={handleDistrictChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full bg-white focus:outline-none focus:border-[#166534]"
               >
                 <option value="">Select district</option>
                 {districtOptions.map((district) => (
@@ -414,18 +429,20 @@ function EquipmentEdit() {
                   </option>
                 ))}
               </select>
-              {errors.district && <span className="text-red-600 text-sm block mt-1">{errors.district}</span>}
+              {errors.district && <span className="text-red-600 text-xs block mt-1">{errors.district}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="listing-village" className="text-sm font-semibold mb-1.5">Village/City</label>
+              <label htmlFor="listing-village" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Village/City
+              </label>
               <select
                 id="listing-village"
                 name="village"
                 aria-label="Village or city"
                 value={formData.village}
                 onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full bg-white focus:outline-none focus:border-[#166534]"
               >
                 <option value="">Select village/city</option>
                 {villageOptions.map((village) => (
@@ -434,11 +451,13 @@ function EquipmentEdit() {
                   </option>
                 ))}
               </select>
-              {errors.village && <span className="text-red-600 text-sm block mt-1">{errors.village}</span>}
+              {errors.village && <span className="text-red-600 text-xs block mt-1">{errors.village}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="listing-price" className="text-sm font-semibold mb-1.5">Price per Day (&#8377;)</label>
+              <label htmlFor="listing-price" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Price per Day (&#8377;)
+              </label>
               <input
                 type="number"
                 id="listing-price"
@@ -448,43 +467,49 @@ function EquipmentEdit() {
                 step="0.01"
                 value={formData.price}
                 onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.price && <span className="text-red-600 text-sm block mt-1">{errors.price}</span>}
+              {errors.price && <span className="text-red-600 text-xs block mt-1">{errors.price}</span>}
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="listing-date-from" className="text-sm font-semibold mb-1.5">Available From</label>
-              <input
-                type="date"
-                id="listing-date-from"
-                name="dateFrom"
-                aria-label="Available from"
-                value={formData.dateFrom}
-                onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
-              />
-              {errors.dateFrom && <span className="text-red-600 text-sm block mt-1">{errors.dateFrom}</span>}
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+              <div>
+                <label htmlFor="listing-date-from" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                  Available From
+                </label>
+                <input
+                  type="date"
+                  id="listing-date-from"
+                  name="dateFrom"
+                  aria-label="Available from"
+                  value={formData.dateFrom}
+                  onChange={handleChange}
+                  className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
+                />
+                {errors.dateFrom && <span className="text-red-600 text-xs block mt-1">{errors.dateFrom}</span>}
+              </div>
 
-            <div className="mb-4">
-              <label htmlFor="listing-date-until" className="text-sm font-semibold mb-1.5">Available Until</label>
-              <input
-                type="date"
-                id="listing-date-until"
-                name="dateTo"
-                aria-label="Available until"
-                value={formData.dateTo}
-                onChange={handleChange}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
-              />
-              {errors.dateTo && <span className="text-red-600 text-sm block mt-1">{errors.dateTo}</span>}
+              <div>
+                <label htmlFor="listing-date-until" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                  Available Until
+                </label>
+                <input
+                  type="date"
+                  id="listing-date-until"
+                  name="dateTo"
+                  aria-label="Available until"
+                  value={formData.dateTo}
+                  onChange={handleChange}
+                  className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
+                />
+                {errors.dateTo && <span className="text-red-600 text-xs block mt-1">{errors.dateTo}</span>}
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-auth"
             >
               {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
             </button>

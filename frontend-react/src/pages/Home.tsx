@@ -172,15 +172,15 @@ function Home() {
 
   return (
     <>
-      <section className="bg-green-800 text-white text-center py-[60px]">
+      <section className="bg-[#166534] text-white text-center py-[60px]">
         <div className="max-w-[1100px] mx-auto px-5">
-          <h1 className="text-[2.2rem] mb-3">Rent farm equipment from owners near you</h1>
-          <p className="text-[1.1rem] text-green-100 max-w-[600px] mx-auto mb-8">
+          <h1 className="text-[1.6rem] sm:text-[2.2rem] font-bold mb-3">Rent farm equipment from owners near you</h1>
+          <p className="text-[1.1rem] text-[#d1fae5] max-w-[600px] mx-auto mb-8">
             Tractors, harvesters, tillers and more &mdash; find what you need,
             check availability, and book in a few steps.
           </p>
 
-          <form className="flex flex-wrap justify-center gap-3 max-w-[820px] mx-auto" onSubmit={handleSearchSubmit}>
+          <form className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 max-w-[820px] mx-auto" onSubmit={handleSearchSubmit}>
             <input
               type="search"
               name="keyword"
@@ -188,7 +188,7 @@ function Home() {
               aria-label="Search equipment"
               value={filters.keyword}
               onChange={handleFilterChange}
-              className="flex-1 min-w-[220px] px-[14px] py-3 border-none rounded-md text-base"
+              className="flex-1 min-w-[220px] px-[14px] py-3 border-none rounded-[6px] text-base text-[#1f2937] bg-white focus:outline-none"
             />
 
             <select
@@ -196,7 +196,7 @@ function Home() {
               aria-label="Filter by category"
               value={filters.category}
               onChange={handleFilterChange}
-              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-[6px] text-base text-[#1f2937] bg-white focus:outline-none"
             >
               <option value="">All Categories</option>
               <option value="tractor">Tractor</option>
@@ -212,7 +212,7 @@ function Home() {
               aria-label="Filter by state"
               value={filters.state}
               onChange={handleStateChange}
-              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-[6px] text-base text-[#1f2937] bg-white focus:outline-none"
             >
               <option value="">Select your state</option>
               <option value="andhra-pradesh">Andhra Pradesh</option>
@@ -232,7 +232,7 @@ function Home() {
               aria-label="Filter by district"
               value={filters.district}
               onChange={handleDistrictChange}
-              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-[6px] text-base text-[#1f2937] bg-white focus:outline-none"
             >
               <option value="">Select district</option>
               {districtOptions.map((district) => (
@@ -247,7 +247,7 @@ function Home() {
               aria-label="Filter by village or city"
               value={filters.village}
               onChange={handleFilterChange}
-              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-md text-base"
+              className="flex-0 min-w-[160px] px-[14px] py-3 border-none rounded-[6px] text-base text-[#1f2937] bg-white focus:outline-none"
             >
               <option value="">Select village/city</option>
               {villageOptions.map((village) => (
@@ -259,14 +259,14 @@ function Home() {
 
             <button
               type="submit"
-              className="flex-0 px-6 py-3 border-none rounded-md bg-amber-500 text-white font-bold text-base cursor-pointer hover:bg-amber-600"
+              className="flex-0 px-6 py-3 border-none rounded-[6px] bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold text-base cursor-pointer transition-colors"
             >
               Search
             </button>
 
             <div className="w-full flex flex-wrap justify-center gap-7 mt-[18px]">
               <div className="flex flex-col items-start">
-                <label htmlFor="price-min" className="text-xs font-semibold text-green-100 mb-1.5">Price Range (&#8377;/day)</label>
+                <label htmlFor="price-min" className="text-xs font-semibold text-[#d1fae5] mb-1.5">Price Range (&#8377;/day)</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -276,9 +276,9 @@ function Home() {
                     min="0"
                     value={filters.priceMin}
                     onChange={handleFilterChange}
-                    className="px-3 py-2.5 border-none rounded-md text-sm w-[120px]"
+                    className="px-3 py-2.5 border-none rounded-[6px] text-sm text-[#1f2937] bg-white w-[120px] focus:outline-none"
                   />
-                  <span className="text-green-100">&ndash;</span>
+                  <span className="text-[#d1fae5]">&ndash;</span>
                   <input
                     type="number"
                     id="price-max"
@@ -287,13 +287,13 @@ function Home() {
                     min="0"
                     value={filters.priceMax}
                     onChange={handleFilterChange}
-                    className="px-3 py-2.5 border-none rounded-md text-sm w-[120px]"
+                    className="px-3 py-2.5 border-none rounded-[6px] text-sm text-[#1f2937] bg-white w-[120px] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col items-start">
-                <label htmlFor="date-from" className="text-xs font-semibold text-green-100 mb-1.5">Available From</label>
+                <label htmlFor="date-from" className="text-xs font-semibold text-[#d1fae5] mb-1.5">Available From</label>
                 <input
                   type="date"
                   id="date-from"
@@ -301,12 +301,12 @@ function Home() {
                   aria-label="Available from"
                   value={filters.dateFrom}
                   onChange={handleFilterChange}
-                  className="flex-0 w-[170px] h-auto px-[14px] py-3 leading-normal border-none rounded-md"
+                  className="flex-0 w-[170px] h-auto px-[14px] py-3 leading-normal border-none rounded-[6px] text-sm text-[#1f2937] bg-white focus:outline-none"
                 />
               </div>
 
               <div className="flex flex-col items-start">
-                <label htmlFor="date-to" className="text-xs font-semibold text-green-100 mb-1.5">Available Until</label>
+                <label htmlFor="date-to" className="text-xs font-semibold text-[#d1fae5] mb-1.5">Available Until</label>
                 <input
                   type="date"
                   id="date-to"
@@ -314,33 +314,56 @@ function Home() {
                   aria-label="Available until"
                   value={filters.dateTo}
                   onChange={handleFilterChange}
-                  className="flex-0 w-[170px] h-auto px-[14px] py-3 leading-normal border-none rounded-md"
+                  className="flex-0 w-[170px] h-auto px-[14px] py-3 leading-normal border-none rounded-[6px] text-sm text-[#1f2937] bg-white focus:outline-none"
                 />
               </div>
+            </div>
+
+            {/* Quick category pills */}
+            <div className="w-full flex flex-wrap justify-center items-center gap-2 mt-4 pt-2">
+              <span className="text-xs text-[#d1fae5] font-semibold mr-1">Quick filter:</span>
+              {['All', 'Tractor', 'Harvester', 'Tiller', 'Seeder', 'Sprayer'].map((categoryName) => {
+                const categoryValue = categoryName === 'All' ? '' : categoryName.toLowerCase()
+                const isActive = filters.category === categoryValue
+                return (
+                  <button
+                    key={categoryName}
+                    type="button"
+                    onClick={() => setFilters((prev) => ({ ...prev, category: categoryValue }))}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
+                      isActive
+                        ? 'bg-white text-[#166534]'
+                        : 'bg-[#14532d] text-[#d1fae5] hover:bg-[#14532d]/80'
+                    }`}
+                  >
+                    {categoryName}
+                  </button>
+                )
+              })}
             </div>
           </form>
         </div>
       </section>
 
-      <section className="py-12">
+      <section className="py-12 bg-[#f9fafb]">
         <div className="max-w-[1100px] mx-auto px-5">
-          <h2 className="text-[1.6rem] mb-6">Available Equipment</h2>
+          <h2 className="text-[1.6rem] font-bold text-[#1f2937] mb-6">Available Equipment</h2>
 
           {loading && (
             <div className="flex flex-col items-center justify-center py-16">
-              <div className="w-10 h-10 border-4 border-green-800 border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-gray-600 text-base font-medium">Loading available equipment...</p>
+              <div className="w-10 h-10 border-4 border-[#166534] border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-[#6b7280] text-base font-medium">Loading available equipment...</p>
             </div>
           )}
 
           {error && !loading && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-6 rounded-lg text-center max-w-[600px] mx-auto mb-8">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-6 rounded-[10px] text-center max-w-[600px] mx-auto mb-8">
               <p className="font-semibold text-lg mb-1">Unable to Load Equipment</p>
               <p className="text-sm mb-4">{error}</p>
               <button
                 type="button"
                 onClick={handleRetry}
-                className="px-5 py-2 bg-green-800 text-white rounded-md text-sm font-semibold hover:bg-green-900 transition-colors cursor-pointer"
+                className="px-5 py-2 bg-[#166534] text-white rounded-[6px] text-sm font-semibold hover:bg-[#14532d] transition-colors cursor-pointer"
               >
                 Retry
               </button>
@@ -350,7 +373,7 @@ function Home() {
           {!loading && !error && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredEquipment.length === 0 ? (
-                <p className="col-span-full text-center text-gray-500 py-8">No equipment found</p>
+                <p className="col-span-full text-center text-[#6b7280] py-8">No equipment found</p>
               ) : (
                 filteredEquipment.map((equipment) => (
                   <EquipmentCard key={equipment.id} equipment={equipment} />

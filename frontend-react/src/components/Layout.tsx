@@ -8,11 +8,11 @@ import Footer from './Footer'
 // a <main> tag - same one-<main>-per-page structure as frontend/index.html.
 function Layout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="min-h-screen flex flex-col bg-[#f9fafb]">
       <Header />
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
       <Footer />
-    </>
+    </div>
   )
 }
 

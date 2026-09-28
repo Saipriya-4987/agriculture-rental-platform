@@ -14,18 +14,18 @@ function Header() {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200">
-      <div className="max-w-[1100px] mx-auto px-5 flex justify-between items-center py-4">
-        <Link to="/" className="text-[1.4rem] font-bold text-green-800">🌾 AgriRent</Link>
+    <header className="bg-white border-b border-[#e5e7eb]">
+      <div className="max-w-[1100px] mx-auto px-5 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 py-4">
+        <Link to="/" className="text-[1.4rem] font-bold text-[#166534]">🌾 AgriRent</Link>
 
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-4 sm:gap-6 flex-wrap justify-center">
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
               isActive
-                ? 'font-bold text-green-800'
-                : 'font-medium text-gray-700 hover:text-green-800'
+                ? 'font-bold text-[#166534]'
+                : 'font-medium text-[#374151] hover:text-[#166534]'
             }
           >
             Home
@@ -35,8 +35,8 @@ function Header() {
             end
             className={({ isActive }) =>
               isActive
-                ? 'font-bold text-green-800'
-                : 'font-medium text-gray-700 hover:text-green-800'
+                ? 'font-bold text-[#166534]'
+                : 'font-medium text-[#374151] hover:text-[#166534]'
             }
           >
             Browse Equipment
@@ -49,8 +49,8 @@ function Header() {
                   to="/my-bookings"
                   className={({ isActive }) =>
                     isActive
-                      ? 'font-bold text-green-800'
-                      : 'font-medium text-gray-700 hover:text-green-800'
+                      ? 'font-bold text-[#166534]'
+                      : 'font-medium text-[#374151] hover:text-[#166534]'
                   }
                 >
                   My Bookings
@@ -62,8 +62,8 @@ function Header() {
                     to="/owner/bookings"
                     className={({ isActive }) =>
                       isActive
-                        ? 'font-bold text-green-800'
-                        : 'font-medium text-gray-700 hover:text-green-800'
+                        ? 'font-bold text-[#166534]'
+                        : 'font-medium text-[#374151] hover:text-[#166534]'
                     }
                   >
                     Booking Requests
@@ -72,18 +72,18 @@ function Header() {
                     to="/equipment/new"
                     className={({ isActive }) =>
                       isActive
-                        ? 'font-bold text-green-800'
-                        : 'font-medium text-gray-700 hover:text-green-800'
+                        ? 'font-bold text-[#166534]'
+                        : 'font-medium text-[#374151] hover:text-[#166534]'
                     }
                   >
                     + List Equipment
                   </NavLink>
                 </>
               )}
-              <div className="flex items-center gap-3 ml-2 border-l border-gray-200 pl-4">
-                <span className="text-sm font-semibold text-gray-700">
+              <div className="flex items-center gap-3 ml-2 border-l border-[#e5e7eb] pl-4">
+                <span className="text-sm font-semibold text-[#374151]">
                   👤 {user.name}{' '}
-                  <span className="text-xs bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-[#dcfce7] text-[#166534] font-bold px-2 py-0.5 rounded-[4px]">
                     {user.role}
                   </span>
                 </span>
@@ -102,15 +102,15 @@ function Header() {
                 to="/login"
                 className={({ isActive }) =>
                   isActive
-                    ? 'font-bold text-green-800'
-                    : 'font-medium text-gray-700 hover:text-green-800'
+                    ? 'font-bold text-[#166534]'
+                    : 'font-medium text-[#374151] hover:text-[#166534]'
                 }
               >
                 Login
               </NavLink>
               <Link
                 to="/register"
-                className="bg-green-800 text-white px-4 py-2 rounded-md hover:bg-green-900"
+                className="btn-nav"
               >
                 Register
               </Link>

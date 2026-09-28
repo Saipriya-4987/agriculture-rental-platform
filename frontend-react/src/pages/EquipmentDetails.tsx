@@ -273,49 +273,49 @@ function EquipmentDetails() {
 
   return (
     <>
-      <section className="py-8 pb-12">
+      <section className="py-8 pb-12 bg-[#f9fafb]">
         <div className="max-w-[1100px] mx-auto px-5">
-          <Link to="/equipment" className="inline-block mb-5 text-green-800 font-semibold hover:underline">
+          <Link to="/equipment" className="inline-block mb-5 text-[#166534] font-semibold hover:underline">
             &larr; Back to search
           </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10">
             {/* LEFT: gallery */}
-            <div>
-              <img src={equipment.image} alt={equipment.imageAlt || equipment.name} className="w-full h-[320px] object-cover rounded-xl" />
+            <div className="gallery">
+              <img src={equipment.image} alt={equipment.imageAlt || equipment.name} className="w-full h-[320px] object-cover rounded-[10px]" />
               <div className="flex gap-2.5 mt-2.5">
-                <img src="https://placehold.co/150x100?text=1" alt="Equipment view 1" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
-                <img src="https://placehold.co/150x100?text=2" alt="Equipment view 2" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
-                <img src="https://placehold.co/150x100?text=3" alt="Equipment view 3" className="w-[90px] h-[60px] object-cover rounded-md border border-gray-200" />
+                <img src="https://placehold.co/150x100?text=1" alt="Equipment view 1" className="w-[90px] h-[60px] object-cover rounded-[6px] border border-[#e5e7eb]" />
+                <img src="https://placehold.co/150x100?text=2" alt="Equipment view 2" className="w-[90px] h-[60px] object-cover rounded-[6px] border border-[#e5e7eb]" />
+                <img src="https://placehold.co/150x100?text=3" alt="Equipment view 3" className="w-[90px] h-[60px] object-cover rounded-[6px] border border-[#e5e7eb]" />
               </div>
             </div>
 
             {/* RIGHT: info panel */}
-            <div>
-              <span className="inline-block bg-green-100 text-green-800 text-xs font-bold uppercase px-2 py-1 rounded w-fit">{equipment.category}</span>
-              <h1 className="text-[1.8rem] my-2 mx-0">{equipment.name}</h1>
+            <div className="info-panel">
+              <span className="tag">{equipment.category}</span>
+              <h1 className="text-[1.8rem] font-bold text-[#1f2937] my-2">{equipment.name}</h1>
 
-              <p className="text-gray-700 mb-1">
+              <p className="text-[#374151] mb-1">
                 Listed by <strong>{ownerName}</strong>
-                <span className="ml-2 text-amber-500 font-semibold">{ratingStars} <span className="text-gray-500 font-normal text-sm">{ratingCount}</span></span>
+                <span className="ml-2 text-[#f59e0b] font-semibold">{ratingStars} <span className="text-[#6b7280] font-normal text-sm">{ratingCount}</span></span>
               </p>
 
-              <p className="text-gray-500 text-sm">📍 {equipment.city}, {equipment.state}</p>
+              <p className="text-[#6b7280] text-sm mb-3">📍 {equipment.city}, {equipment.state}</p>
 
-              <p className="text-[1.6rem] font-bold text-green-800 my-4">
-                ₹{equipment.pricePerDay.toLocaleString('en-IN')} <span className="text-sm font-normal text-gray-500">/ day</span>
+              <p className="text-[1.6rem] font-bold text-[#166534] my-4">
+                ₹{equipment.pricePerDay.toLocaleString('en-IN')} <span className="text-[0.9rem] font-normal text-[#6b7280]">/ day</span>
               </p>
 
-              <a href="#request-section" className="inline-block bg-amber-500 text-white font-bold px-7 py-3 rounded-md mb-7 hover:bg-amber-600">Book Now</a>
+              <a href="#request-section" className="btn-book mb-7">Book Now</a>
 
               <div className="mb-6">
-                <h2 className="text-[1.1rem] mb-2">Description</h2>
-                <p>{description}</p>
+                <h2 className="text-[1.1rem] font-bold text-[#1f2937] mb-2">Description</h2>
+                <p className="text-[#374151] leading-relaxed">{description}</p>
               </div>
 
               <div className="mb-6">
-                <h2 className="text-[1.1rem] mb-2">Features</h2>
-                <ul className="pl-5 text-gray-700">
+                <h2 className="text-[1.1rem] font-bold text-[#1f2937] mb-2">Features</h2>
+                <ul className="pl-5 text-[#374151] list-disc space-y-1">
                   {features.map((feature) => (
                     <li key={feature} className="mb-1">{feature}</li>
                   ))}
@@ -323,8 +323,8 @@ function EquipmentDetails() {
               </div>
 
               <div className="mb-6">
-                <h2 className="text-[1.1rem] mb-2">Availability</h2>
-                <ul className="pl-5 text-gray-700">
+                <h2 className="text-[1.1rem] font-bold text-[#1f2937] mb-2">Availability</h2>
+                <ul className="pl-5 text-[#374151] list-disc space-y-1">
                   {availabilityList.map((window) => (
                     <li key={window} className="mb-1">{window}</li>
                   ))}
@@ -332,14 +332,14 @@ function EquipmentDetails() {
               </div>
 
               {/* RENTAL/BOOKING REQUEST FORM */}
-              <div id="request-section" className="mb-6 bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                <h2 className="text-[1.2rem] font-bold text-gray-900 mb-2">Request to Rent</h2>
+              <div id="request-section" className="mb-6 bg-white border border-[#e5e7eb] rounded-[10px] p-6 shadow-sm">
+                <h2 className="text-[1.2rem] font-bold text-[#1f2937] mb-3">Request to Rent</h2>
 
                 {message && (
                   <div
-                    className={`p-3.5 rounded-lg mb-4 text-sm font-medium ${
+                    className={`p-3.5 rounded-[6px] mb-4 text-sm font-medium ${
                       message.type === 'success'
-                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        ? 'bg-green-50 text-[#166534] border border-[#d1fae5]'
                         : 'bg-red-50 text-red-800 border border-red-200'
                     }`}
                     aria-live="polite"
@@ -349,29 +349,29 @@ function EquipmentDetails() {
                 )}
 
                 {!isAuthenticated() ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-5 text-center">
-                    <p className="font-semibold text-gray-800 mb-1">Want to rent this machine?</p>
-                    <p className="text-sm text-gray-600 mb-4">
+                  <div className="bg-[#ecfdf5] border border-[#d1fae5] rounded-[6px] p-5 text-center">
+                    <p className="font-semibold text-[#14532d] mb-1">Want to rent this machine?</p>
+                    <p className="text-sm text-[#374151] mb-4">
                       Please log in with your <strong>Farmer</strong> account to select rental dates and submit a booking request.
                     </p>
                     <Link
                       to="/login"
-                      className="inline-block px-5 py-2.5 bg-green-800 text-white font-semibold text-sm rounded-md hover:bg-green-900 transition-colors"
+                      className="btn-nav"
                     >
                       Log in to Book
                     </Link>
                   </div>
                 ) : getUserRole() !== 'FARMER' ? (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-600">
+                  <div className="bg-gray-50 border border-[#e5e7eb] rounded-[6px] p-4 text-center text-sm text-[#6b7280]">
                     <p>
-                      Logged in as <strong className="text-gray-800">{getUserRole()}</strong>. Rental bookings can only be requested by Farmer accounts.
+                      Logged in as <strong className="text-[#1f2937]">{getUserRole()}</strong>. Rental bookings can only be requested by Farmer accounts.
                     </p>
                   </div>
                 ) : (
                   <form className="flex flex-col gap-4" onSubmit={handleRentalSubmit}>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label htmlFor="rental-from" className="text-sm font-semibold mb-1.5 block text-gray-700">
+                        <label htmlFor="rental-from" className="text-sm font-semibold mb-1.5 block text-[#374151]">
                           Rental Start Date
                         </label>
                         <input
@@ -381,7 +381,7 @@ function EquipmentDetails() {
                           aria-label="Rental from"
                           value={rentalFrom}
                           onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalFrom(event.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-green-600"
+                          className="px-3.5 py-2.5 border border-[#d1d5db] rounded-[6px] w-full text-base text-[#1f2937] bg-white focus:outline-none focus:border-[#166534]"
                         />
                         {errors.rentalFrom && (
                           <span className="text-red-600 text-xs block mt-1">{errors.rentalFrom}</span>
@@ -389,7 +389,7 @@ function EquipmentDetails() {
                       </div>
 
                       <div>
-                        <label htmlFor="rental-until" className="text-sm font-semibold mb-1.5 block text-gray-700">
+                        <label htmlFor="rental-until" className="text-sm font-semibold mb-1.5 block text-[#374151]">
                           Rental End Date
                         </label>
                         <input
@@ -399,7 +399,7 @@ function EquipmentDetails() {
                           aria-label="Rental until"
                           value={rentalUntil}
                           onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalUntil(event.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-green-600"
+                          className="px-3.5 py-2.5 border border-[#d1d5db] rounded-[6px] w-full text-base text-[#1f2937] bg-white focus:outline-none focus:border-[#166534]"
                         />
                         {errors.rentalUntil && (
                           <span className="text-red-600 text-xs block mt-1">{errors.rentalUntil}</span>
@@ -408,7 +408,7 @@ function EquipmentDetails() {
                     </div>
 
                     <div>
-                      <label htmlFor="handover-method" className="text-sm font-semibold mb-1.5 block text-gray-700">
+                      <label htmlFor="handover-method" className="text-sm font-semibold mb-1.5 block text-[#374151]">
                         Handover Method
                       </label>
                       <select
@@ -417,7 +417,7 @@ function EquipmentDetails() {
                         onChange={(event: ChangeEvent<HTMLSelectElement>) =>
                           setHandoverMethod(event.target.value as 'PICKUP' | 'DELIVERY')
                         }
-                        className="px-3 py-2 border border-gray-300 rounded-md w-full bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-600"
+                        className="px-3.5 py-2.5 border border-[#d1d5db] rounded-[6px] w-full bg-white text-[#1f2937] focus:outline-none focus:border-[#166534]"
                       >
                         <option value="PICKUP">Self Pickup (Collect from Owner location)</option>
                         <option value="DELIVERY">Delivery to Farm (Coordinated with Owner)</option>
@@ -425,12 +425,12 @@ function EquipmentDetails() {
                     </div>
 
                     {calculatedDays > 0 && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-900 flex justify-between items-center">
+                      <div className="bg-[#ecfdf5] border border-[#d1fae5] rounded-[6px] p-3 text-sm text-[#14532d] flex justify-between items-center">
                         <div>
                           <span className="font-semibold">{calculatedDays} day{calculatedDays > 1 ? 's' : ''}</span>
-                          <span className="text-xs text-green-700 ml-1.5">(@ ₹{equipment.pricePerDay.toLocaleString('en-IN')}/day)</span>
+                          <span className="text-xs text-[#166534] ml-1.5">(@ ₹{equipment.pricePerDay.toLocaleString('en-IN')}/day)</span>
                         </div>
-                        <div className="text-base font-bold text-green-900">
+                        <div className="text-base font-bold text-[#166534]">
                           Total: ₹{calculatedTotal.toLocaleString('en-IN')}
                         </div>
                       </div>
@@ -439,7 +439,7 @@ function EquipmentDetails() {
                     <button
                       type="submit"
                       disabled={isBookingSubmitting}
-                      className="w-full py-2.5 px-4 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                      className="btn-auth"
                     >
                       {isBookingSubmitting ? 'Submitting Request...' : 'Confirm & Request to Rent'}
                     </button>
@@ -449,24 +449,24 @@ function EquipmentDetails() {
 
               {/* OWNER ACTIONS: Edit and Delete (Accessible to OWNER role) */}
               {hasRole('OWNER') && (
-                <div className="mb-6 pt-6 border-t border-gray-200">
-                  <h2 className="text-[1.1rem] mb-3">Manage Listing</h2>
+                <div className="mb-6 pt-6 border-t border-[#e5e7eb]">
+                  <h2 className="text-[1.1rem] font-bold text-[#1f2937] mb-3">Manage Listing</h2>
 
                   {deleteError && (
-                    <p className="p-3 rounded-md mb-3 bg-red-100 text-red-800 text-sm" aria-live="polite">
+                    <p className="p-3 rounded-[6px] mb-3 bg-red-100 text-red-800 text-sm" aria-live="polite">
                       {deleteError}
                     </p>
                   )}
 
                   {deleteSuccess ? (
-                    <p className="p-3 rounded-md mb-3 bg-green-100 text-green-800 text-sm" aria-live="polite">
+                    <p className="p-3 rounded-[6px] mb-3 bg-green-100 text-[#166534] text-sm" aria-live="polite">
                       Equipment deleted successfully. Redirecting to equipment list...
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-3">
                       <Link
                         to={`/equipment/${equipment.id}/edit`}
-                        className="px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-800 font-semibold text-sm hover:bg-gray-100 transition-colors"
+                        className="px-4 py-2 border border-[#d1d5db] rounded-[6px] bg-white text-[#1f2937] font-semibold text-sm hover:bg-gray-50 transition-colors"
                       >
                         Edit Equipment
                       </Link>
@@ -474,7 +474,7 @@ function EquipmentDetails() {
                         type="button"
                         onClick={handleDelete}
                         disabled={isDeleting}
-                        className="px-4 py-2 border border-red-300 rounded-md bg-red-50 text-red-700 font-semibold text-sm hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 border border-red-300 rounded-[6px] bg-red-50 text-red-700 font-semibold text-sm hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isDeleting ? 'Deleting...' : 'Delete Equipment'}
                       </button>
@@ -488,35 +488,23 @@ function EquipmentDetails() {
       </section>
 
       {/* REVIEWS SECTION */}
-      <section className="pb-16 pt-8 border-t border-gray-100 bg-gray-50/50">
+      <section className="pb-16 pt-8 border-t border-[#e5e7eb] bg-[#f9fafb]">
         <div className="max-w-[1100px] mx-auto px-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Farmer Reviews & Ratings</h2>
-              <p className="text-gray-600 text-sm mt-0.5">
-                Authentic feedback from farmers who completed rentals for this equipment.
-              </p>
-            </div>
-            {equipment && (
-              <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-xs">
-                <span className="text-amber-500 text-lg">★</span>
-                <span className="font-bold text-gray-900 text-base">
-                  {equipment.rating ? equipment.rating.toFixed(1) : (reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 'New')}
-                </span>
-                <span className="text-xs text-gray-500">
-                  ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                </span>
-              </div>
-            )}
-          </div>
+          <h2 className="text-[1.4rem] font-bold text-[#1f2937] mb-5">
+            Reviews{' '}
+            <span className="text-[0.95rem] font-normal text-[#6b7280] ml-2">
+              {equipment.rating ? equipment.rating.toFixed(1) : (reviews.length > 0 ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) : 'New')}{' '}
+              average · {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+            </span>
+          </h2>
 
           {reviewsLoading ? (
-            <div className="text-center py-12 bg-white border border-gray-200 rounded-xl shadow-xs">
-              <div className="inline-block w-6 h-6 border-2 border-green-800 border-t-transparent rounded-full animate-spin mb-2"></div>
-              <p className="text-gray-500 text-sm">Loading verified reviews...</p>
+            <div className="text-center py-12 bg-white border border-[#e5e7eb] rounded-[8px]">
+              <div className="inline-block w-6 h-6 border-2 border-[#166534] border-t-transparent rounded-full animate-spin mb-2"></div>
+              <p className="text-[#6b7280] text-sm">Loading verified reviews...</p>
             </div>
           ) : reviewsError ? (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center text-sm text-red-700 shadow-xs">
+            <div className="bg-red-50 border border-red-200 rounded-[8px] p-6 text-center text-sm text-red-700">
               <p className="mb-3 font-medium">{reviewsError}</p>
               <button
                 type="button"
@@ -532,54 +520,32 @@ function EquipmentDetails() {
                       .finally(() => setReviewsLoading(false))
                   }
                 }}
-                className="px-4 py-1.5 bg-red-600 text-white font-semibold text-xs rounded-md hover:bg-red-700 transition-colors cursor-pointer"
+                className="px-4 py-1.5 bg-[#166534] text-white font-semibold text-xs rounded-[6px] hover:bg-[#14532d] transition-colors cursor-pointer"
               >
                 Retry
               </button>
             </div>
           ) : reviews.length === 0 ? (
-            <div className="text-center py-12 bg-white border border-gray-200 rounded-xl p-6 shadow-xs">
+            <div className="text-center py-12 bg-white border border-[#e5e7eb] rounded-[8px] p-6">
               <span className="text-3xl mb-2 block">🌾</span>
-              <h3 className="font-bold text-gray-800 text-sm mb-1">No Reviews Yet</h3>
-              <p className="text-gray-500 text-xs max-w-[360px] mx-auto">
+              <h3 className="font-bold text-[#1f2937] text-sm mb-1">No Reviews Yet</h3>
+              <p className="text-[#6b7280] text-xs max-w-[360px] mx-auto">
                 No farmer reviews have been submitted for this equipment yet. Be the first to rent and share your experience!
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {reviews.map((rev) => (
-                <div key={rev.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-green-100 text-green-900 font-bold text-xs flex items-center justify-center border border-green-200">
-                        {rev.reviewer?.name ? rev.reviewer.name.charAt(0).toUpperCase() : 'F'}
-                      </div>
-                      <div>
-                        <strong className="text-sm text-gray-900 block leading-tight">
-                          {rev.reviewer?.name || 'Verified Farmer'}
-                        </strong>
-                        <span className="text-[11px] text-gray-400">
-                          {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString() : 'Verified Rental'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-0.5 text-amber-500 text-sm">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <span key={i} className={i < rev.rating ? 'text-amber-500' : 'text-gray-200'}>
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  {rev.comment ? (
-                    <p className="text-sm text-gray-700 mt-2">
-                      "{rev.comment}"
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-2 italic">
-                      No written feedback provided.
-                    </p>
-                  )}
+                <div key={rev.id} className="bg-white border border-[#e5e7eb] rounded-[8px] p-4">
+                  <p className="text-[#f59e0b] text-[0.95rem]">
+                    {'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}
+                  </p>
+                  <p className="text-[#1f2937] my-1.5 text-base">
+                    "{rev.comment || 'Great machine, worked fine for our farm.'}"
+                  </p>
+                  <p className="text-[#6b7280] text-[0.85rem]">
+                    &mdash; {rev.reviewer?.name || 'Verified Farmer'}
+                  </p>
                 </div>
               ))}
             </div>

@@ -105,21 +105,30 @@ function Register() {
   }
 
   return (
-    <section className="py-15 flex justify-center">
+    <section className="py-[60px] flex justify-center bg-[#f9fafb]">
       <div className="w-full max-w-[420px] px-5">
-        <div className="bg-white border border-gray-200 rounded-xl p-10">
-          <h1 className="text-[1.5rem] mb-1.5">Create your AgriRent account</h1>
-          <p className="text-gray-500 mb-6 text-[0.95rem]">Register as a Farmer to rent equipment, or an Owner to list it.</p>
+        <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-8 sm:p-10">
+          <h1 className="text-[1.5rem] font-bold text-[#1f2937] mb-1.5">Create your AgriRent account</h1>
+          <p className="text-[#6b7280] mb-6 text-[0.95rem]">Register as a Farmer to rent equipment, or an Owner to list it.</p>
 
           {message && (
-            <p className={`p-3 rounded-md mb-4 font-semibold text-[0.9rem] ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-800'}`} aria-live="polite">
+            <p
+              className={`p-3 rounded-[6px] mb-4 font-semibold text-[0.9rem] ${
+                message.type === 'error'
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : 'bg-green-100 text-[#166534] border border-[#d1fae5]'
+              }`}
+              aria-live="polite"
+            >
               {message.text}
             </p>
           )}
 
           <form className="flex flex-col" onSubmit={handleRegisterSubmit}>
             <div className="mb-4">
-              <label htmlFor="reg-name" className="text-sm font-semibold mb-1.5 block">Full Name</label>
+              <label htmlFor="reg-name" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Full Name
+              </label>
               <input
                 type="text"
                 id="reg-name"
@@ -127,13 +136,15 @@ function Register() {
                 placeholder="e.g. Ramesh Naidu"
                 value={name}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.name && <span className="text-red-600 text-sm block mt-1">{errors.name}</span>}
+              {errors.name && <span className="text-red-600 text-xs block mt-1">{errors.name}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="reg-email" className="text-sm font-semibold mb-1.5 block">Email</label>
+              <label htmlFor="reg-email" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Email
+              </label>
               <input
                 type="email"
                 id="reg-email"
@@ -141,13 +152,15 @@ function Register() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setEmail(event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.email && <span className="text-red-600 text-sm block mt-1">{errors.email}</span>}
+              {errors.email && <span className="text-red-600 text-xs block mt-1">{errors.email}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="reg-phone" className="text-sm font-semibold mb-1.5 block">Phone Number</label>
+              <label htmlFor="reg-phone" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Phone Number
+              </label>
               <input
                 type="tel"
                 id="reg-phone"
@@ -155,13 +168,15 @@ function Register() {
                 placeholder="9876543210"
                 value={phone}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setPhone(event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.phone && <span className="text-red-600 text-sm block mt-1">{errors.phone}</span>}
+              {errors.phone && <span className="text-red-600 text-xs block mt-1">{errors.phone}</span>}
             </div>
 
             <div className="mb-4">
-              <label htmlFor="reg-password" className="text-sm font-semibold mb-1.5 block">Password</label>
+              <label htmlFor="reg-password" className="text-[0.9rem] font-semibold mb-1.5 block text-[#374151]">
+                Password
+              </label>
               <input
                 type="password"
                 id="reg-password"
@@ -169,49 +184,54 @@ function Register() {
                 placeholder="Create a password (min. 6 characters)"
                 value={password}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md w-full"
+                className="px-[14px] py-3 border border-[#d1d5db] rounded-[6px] text-base text-[#1f2937] w-full focus:outline-none focus:border-[#166534]"
               />
-              {errors.password && <span className="text-red-600 text-sm block mt-1">{errors.password}</span>}
+              {errors.password && <span className="text-red-600 text-xs block mt-1">{errors.password}</span>}
             </div>
 
-            <fieldset className="border border-gray-300 rounded-md p-3.5 mb-5">
-              <legend className="text-xs font-semibold text-gray-700 px-1">I am registering as a</legend>
+            <fieldset className="border border-[#d1d5db] rounded-[6px] p-3.5 mb-5">
+              <legend className="text-[0.85rem] font-semibold text-[#374151] px-1">I am registering as a</legend>
 
-              <label className="flex items-center gap-2 text-gray-700 text-[0.95rem] mt-2">
+              <label className="flex items-center gap-2 text-[#374151] text-[0.95rem] mt-2 cursor-pointer">
                 <input
                   type="radio"
                   name="role"
                   value="farmer"
                   checked={role === 'farmer'}
                   onChange={(event: ChangeEvent<HTMLInputElement>) => setRole(event.target.value)}
+                  className="accent-[#166534]"
                 />
                 Farmer &mdash; I want to rent equipment
               </label>
 
-              <label className="flex items-center gap-2 text-gray-700 text-[0.95rem] mt-2">
+              <label className="flex items-center gap-2 text-[#374151] text-[0.95rem] mt-2 cursor-pointer">
                 <input
                   type="radio"
                   name="role"
                   value="owner"
                   checked={role === 'owner'}
                   onChange={(event: ChangeEvent<HTMLInputElement>) => setRole(event.target.value)}
+                  className="accent-[#166534]"
                 />
                 Owner &mdash; I want to list equipment
               </label>
             </fieldset>
-            {errors.role && <span className="text-red-600 text-sm block mt-1">{errors.role}</span>}
+            {errors.role && <span className="text-red-600 text-xs block -mt-3 mb-3">{errors.role}</span>}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-3 border-none rounded-md bg-green-800 text-white font-semibold hover:bg-green-900 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-auth"
             >
               {isSubmitting ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-600 mt-6">
-            Already have an account? <Link to="/login" className="text-green-800 font-semibold no-underline hover:underline">Log in here</Link>
+          <p className="text-center text-[0.9rem] text-[#6b7280] mt-6">
+            Already have an account?{' '}
+            <Link to="/login" className="text-[#166534] font-semibold hover:underline">
+              Log in here
+            </Link>
           </p>
         </div>
       </div>
