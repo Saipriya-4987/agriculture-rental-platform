@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import EquipmentImage from './EquipmentImage'
 
 // M3 step 3 (Home page migration) + step 5 (Equipment List migration):
 // reusable card component. Based on the <article class="equipment-card">
@@ -35,7 +36,7 @@ function EquipmentCard({ equipment }: EquipmentCardProps) {
 
   return (
     <article className="bg-white border border-[#e5e7eb] rounded-[10px] overflow-hidden flex flex-col">
-      <img src={image} alt={imageAlt} className="w-full h-[180px] object-cover" />
+      <EquipmentImage src={image} alt={imageAlt || name} className="w-full h-[180px] object-cover" />
       <div className="p-4 flex flex-col gap-1.5 flex-1">
         <span className="tag">{category}</span>
         <h3 className="text-[1.1rem] font-bold text-[#1f2937]">{name}</h3>

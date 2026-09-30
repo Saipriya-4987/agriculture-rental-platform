@@ -1,7 +1,9 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { locationData } from '../data/equipmentData.js'
+import ImageUploadField from '../components/ImageUploadField'
 import { createEquipment } from '../services/api'
+import { isImageUploadConfigured, uploadImageToCloudinary } from '../services/imageUpload'
 
 interface FormData {
   name: string
@@ -23,6 +25,7 @@ interface FormErrors {
   price?: string
   dateFrom?: string
   dateTo?: string
+  image?: string
 }
 
 interface Message {
@@ -79,6 +82,17 @@ function EquipmentNew() {
   const [message, setMessage] = useState<Message | null>(null)
   const [createdId, setCreatedId] = useState<number | null>(null)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [isUploading, setIsUploading] = useState<boolean>(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  // Hosted URL of the already-uploaded file, so a retry after a failed save does not upload it twice.
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('')
+
+  // Image picker: the field validates the file type/size, we just store the result.
+  function handleImageChange(file: File | null, error?: string) {
+    setImageFile(file)
+    setUploadedImageUrl('')
+    setErrors((previous) => ({ ...previous, image: error }))
+  }
 
   // Generic change handler for plain fields
   function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
@@ -155,6 +169,10 @@ function EquipmentNew() {
       newErrors.dateTo = 'Available Until date cannot be earlier than Available From date.'
     }
 
+    if (!imageFile) {
+      newErrors.image = 'Please select an equipment image.'
+    }
+
     return newErrors
   }
 
@@ -164,11 +182,32 @@ function EquipmentNew() {
     const newErrors = validateListingForm()
     setErrors(newErrors)
 
-    if (Object.keys(newErrors).length === 0) {
+    if (Object.keys(newErrors).length === 0 && imageFile) {
+      if (!isImageUploadConfigured()) {
+        setMessage({
+          text: 'Image upload is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in your environment.',
+          type: 'error',
+        })
+        return
+      }
+
       setIsSubmitting(true)
       setMessage(null)
 
       try {
+        // 1) Upload the image to Cloudinary (skipped if this same file was already uploaded).
+        let imageUrl = uploadedImageUrl
+        if (!imageUrl) {
+          setIsUploading(true)
+          try {
+            imageUrl = await uploadImageToCloudinary(imageFile)
+            setUploadedImageUrl(imageUrl)
+          } finally {
+            setIsUploading(false)
+          }
+        }
+
+        // 2) Save the listing with only the hosted image URL.
         const stateLabel = STATE_LABELS[formData.state] || formData.state
         const districtLabel = districtData?.label || formData.district
         const villageOption = villageOptions.find((v) => v.value === formData.village)
@@ -188,7 +227,7 @@ function EquipmentNew() {
           pricePerDay: Number(formData.price),
           availabilityFrom: formData.dateFrom,
           availabilityTo: formData.dateTo,
-          image: `https://placehold.co/400x300?text=${encodeURIComponent(formData.name.trim())}`,
+          image: imageUrl,
           imageAlt: formData.name.trim(),
           description: `${CATEGORY_LABELS[formData.category] || formData.category} available for rent in ${villageLabel}, ${stateLabel}.`,
           owner: 'Farm Owner',
@@ -206,6 +245,8 @@ function EquipmentNew() {
           dateFrom: '',
           dateTo: '',
         })
+        setImageFile(null)
+        setUploadedImageUrl('')
       } catch (err) {
         setMessage({
           text: err instanceof Error ? err.message : 'Failed to submit equipment listing. Please try again.',
@@ -409,12 +450,22 @@ function EquipmentNew() {
               </div>
             </div>
 
+            <ImageUploadField
+              id="listing-image"
+              label="Equipment Image"
+              file={imageFile}
+              onChange={handleImageChange}
+              error={errors.image}
+              required
+              disabled={isSubmitting}
+            />
+
             <button
               type="submit"
               disabled={isSubmitting}
               className="btn-auth"
             >
-              {isSubmitting ? 'Listing Equipment...' : 'List Equipment'}
+              {isUploading ? 'Uploading Image...' : isSubmitting ? 'Listing Equipment...' : 'List Equipment'}
             </button>
           </form>
         </div>

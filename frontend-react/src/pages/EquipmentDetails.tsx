@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import EquipmentImage from '../components/EquipmentImage'
 import {
   getEquipmentById,
   deleteEquipment,
@@ -282,12 +283,11 @@ function EquipmentDetails() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10">
             {/* LEFT: gallery */}
             <div className="gallery">
-              <img src={equipment.image} alt={equipment.imageAlt || equipment.name} className="w-full h-[320px] object-cover rounded-[10px]" />
-              <div className="flex gap-2.5 mt-2.5">
-                <img src="https://placehold.co/150x100?text=1" alt="Equipment view 1" className="w-[90px] h-[60px] object-cover rounded-[6px] border border-[#e5e7eb]" />
-                <img src="https://placehold.co/150x100?text=2" alt="Equipment view 2" className="w-[90px] h-[60px] object-cover rounded-[6px] border border-[#e5e7eb]" />
-                <img src="https://placehold.co/150x100?text=3" alt="Equipment view 3" className="w-[90px] h-[60px] object-cover rounded-[6px] border border-[#e5e7eb]" />
-              </div>
+              <EquipmentImage
+                src={equipment.image}
+                alt={equipment.imageAlt || equipment.name}
+                className="w-full h-[320px] object-cover rounded-[10px]"
+              />
             </div>
 
             {/* RIGHT: info panel */}
