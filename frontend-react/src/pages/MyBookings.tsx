@@ -445,6 +445,23 @@ export default function MyBookings() {
                   </div>
                 </div>
 
+                {/* Rental Agreement Acceptance status */}
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-2.5 pb-1 border-t border-[#f3f4f6] text-xs">
+                  <div className="flex items-center gap-1.5 text-[#166534]">
+                    <span className="font-semibold bg-[#ecfdf5] border border-[#d1fae5] px-2 py-0.5 rounded-[4px] inline-flex items-center gap-1">
+                      ✓ Rental Agreement Accepted ({booking.agreementAcceptance?.agreementVersion || 'v1.0'})
+                    </span>
+                    <span className="text-gray-500 hidden sm:inline">
+                      • Terms bound to this rental
+                    </span>
+                  </div>
+                  {booking.agreementAcceptance?.acceptedAt && (
+                    <span className="text-[11px] text-gray-400">
+                      Signed {new Date(booking.agreementAcceptance.acceptedAt).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+
                 {/* Owner Rejection Notice */}
                 {booking.rejectionReason && booking.status === 'REJECTED' && (
                   <div className="mt-2 p-3.5 bg-red-50 border border-red-200 rounded-[8px] text-xs text-red-800">

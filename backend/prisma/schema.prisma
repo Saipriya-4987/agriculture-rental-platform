@@ -20,6 +20,7 @@ model User {
   equipments    Equipment[]
   bookings      Booking[]
   reviews       Review[]
+  agreement_acceptances AgreementAcceptance[]
 
   @@map("users")
 }
@@ -72,6 +73,7 @@ model Booking {
   equipment        Equipment @relation(fields: [equipment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   farmer           User      @relation(fields: [farmer_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   reviews          Review[]
+  agreement_acceptance AgreementAcceptance?
 
   @@map("bookings")
 }
@@ -90,4 +92,16 @@ model Review {
 
   @@unique([booking_id, reviewer_id])
   @@map("reviews")
+}
+
+model AgreementAcceptance {
+  booking_id        Int      @id
+  agreement_version String   @default("v1.0") @db.VarChar(50)
+  accepted_by       Int
+  accepted_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  booking           Booking  @relation(fields: [booking_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user              User     @relation(fields: [accepted_by], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("agreement_acceptances")
 }

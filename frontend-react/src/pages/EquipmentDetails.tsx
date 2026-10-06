@@ -16,6 +16,7 @@ import {
 interface FormErrors {
   rentalFrom?: string
   rentalUntil?: string
+  agreement?: string
 }
 
 interface Message {
@@ -56,6 +57,7 @@ function EquipmentDetails() {
   const [rentalFrom, setRentalFrom] = useState<string>('')
   const [rentalUntil, setRentalUntil] = useState<string>('')
   const [handoverMethod, setHandoverMethod] = useState<'PICKUP' | 'DELIVERY'>('PICKUP')
+  const [agreementAccepted, setAgreementAccepted] = useState<boolean>(false)
   const [isBookingSubmitting, setIsBookingSubmitting] = useState<boolean>(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
@@ -131,6 +133,10 @@ function EquipmentDetails() {
       newErrors.rentalUntil = 'Rental Until date cannot be earlier than Rental From date.'
     }
 
+    if (!agreementAccepted) {
+      newErrors.agreement = 'Please agree to the rental agreement and terms to proceed.'
+    }
+
     return newErrors
   }
 
@@ -156,12 +162,14 @@ function EquipmentDetails() {
         startDate: rentalFrom,
         endDate: rentalUntil,
         handoverMethod,
+        agreementAccepted,
       })
 
       setMessage({
-        text: `Booking request placed successfully! Booking ID #${response.booking.id} (Status: ${response.booking.status}). Total: ₹${response.booking.totalAmount.toLocaleString('en-IN')}.`,
+        text: `Booking request placed successfully! Booking ID #${response.booking.id} (Status: ${response.booking.status}). Total: ₹${response.booking.totalAmount.toLocaleString('en-IN')}. Rental agreement v1.0 accepted.`,
         type: 'success',
       })
+      setAgreementAccepted(false)
     } catch (err) {
       setMessage({
         text: err instanceof Error ? err.message : 'Failed to submit booking request.',
@@ -436,10 +444,61 @@ function EquipmentDetails() {
                       </div>
                     )}
 
+                    {/* RENTAL AGREEMENT CLAUSES & MANDATORY ACCEPTANCE (PRD §7.5 FR-AGR-01/02) */}
+                    <div className="border border-[#e5e7eb] rounded-[6px] p-3.5 bg-[#f9fafb]">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-[#1f2937] uppercase tracking-wider flex items-center gap-1.5">
+                          📜 Rental Agreement Terms (v1.0)
+                        </span>
+                        <span className="text-[10px] font-semibold text-[#166534] bg-[#ecfdf5] border border-[#d1fae5] px-2 py-0.5 rounded">
+                          Mandatory
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-[#4b5563] space-y-1.5 mb-3 bg-white p-3 rounded-[6px] border border-[#e5e7eb] max-h-36 overflow-y-auto leading-relaxed">
+                        <div>
+                          <strong className="text-[#1f2937]">1. Authorized Use:</strong> Equipment must be used solely for legitimate agricultural operations by qualified operators.
+                        </div>
+                        <div>
+                          <strong className="text-[#1f2937]">2. No Resale or Subletting:</strong> Renter shall not sublease, transfer, assign, or resell the rented machinery to any third party.
+                        </div>
+                        <div>
+                          <strong className="text-[#1f2937]">3. Damage Responsibility:</strong> Renter assumes responsibility for damage, loss, or negligence beyond normal wear and tear occurring during the rental period.
+                        </div>
+                        <div>
+                          <strong className="text-[#1f2937]">4. Return Period:</strong> Equipment must be returned to the owner or made available for return handover on or before the agreed end date.
+                        </div>
+                      </div>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          id="agreement-checkbox"
+                          name="agreement_accepted"
+                          checked={agreementAccepted}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setAgreementAccepted(e.target.checked)
+                            if (e.target.checked && errors.agreement) {
+                              setErrors((prev) => ({ ...prev, agreement: undefined }))
+                            }
+                          }}
+                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#166534] focus:ring-[#166534] cursor-pointer"
+                        />
+                        <span className="text-xs font-semibold text-[#1f2937]">
+                          I agree to the rental agreement and terms.
+                        </span>
+                      </label>
+                      {errors.agreement && (
+                        <span className="text-red-600 text-xs block mt-1.5 font-medium">
+                          {errors.agreement}
+                        </span>
+                      )}
+                    </div>
+
                     <button
                       type="submit"
-                      disabled={isBookingSubmitting}
-                      className="btn-auth"
+                      disabled={isBookingSubmitting || !agreementAccepted}
+                      className="btn-auth disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isBookingSubmitting ? 'Submitting Request...' : 'Confirm & Request to Rent'}
                     </button>

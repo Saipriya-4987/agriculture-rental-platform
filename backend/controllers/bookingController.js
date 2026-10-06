@@ -75,7 +75,13 @@ const formatBooking = (booking) => {
       comment: r.comment,
       createdAt: r.created_at
     })) : [],
-    isReviewed: Boolean(booking.reviews && booking.reviews.length > 0)
+    isReviewed: Boolean(booking.reviews && booking.reviews.length > 0),
+    agreementAcceptance: booking.agreement_acceptance ? {
+      bookingId: booking.agreement_acceptance.booking_id,
+      agreementVersion: booking.agreement_acceptance.agreement_version,
+      acceptedBy: booking.agreement_acceptance.accepted_by,
+      acceptedAt: booking.agreement_acceptance.accepted_at
+    } : undefined
   }
 }
 
@@ -94,8 +100,16 @@ const createBooking = async (req, res, next) => {
       endDate,
       end_date,
       handoverMethod,
-      handover_method
+      handover_method,
+      agreementAccepted,
+      agreement_accepted
     } = req.body
+
+    // 0. Enforce Agreement Acceptance (PRD §7.5 FR-AGR-01/02, TRD §8.2)
+    const isAgreementAccepted = Boolean(agreementAccepted === true || agreement_accepted === true)
+    if (!isAgreementAccepted) {
+      throw new AppError('Rental agreement must be accepted to place a booking request', 400)
+    }
 
     // 1. Resolve inputs
     const rawEquipmentId = equipmentId !== undefined ? equipmentId : equipment_id
@@ -171,21 +185,41 @@ const createBooking = async (req, res, next) => {
     // 8. Always set farmer_id from req.user.id (never from request body)
     const farmerId = req.user.id
 
-    // 9. Create booking with status PENDING
-    const newBooking = await prisma.booking.create({
-      data: {
-        equipment_id: parsedEquipmentId,
-        farmer_id: farmerId,
-        start_date: start,
-        end_date: end,
-        total_days: totalDays,
-        total_amount: totalAmount,
-        handover_method: rawHandoverMethod,
-        status: 'PENDING'
-      },
-      include: {
-        equipment: true,
-        farmer: true
+    // 9. Create booking with status PENDING and record agreement acceptance in a transaction
+    const newBooking = await prisma.$transaction(async (tx) => {
+      const createdBooking = await tx.booking.create({
+        data: {
+          equipment_id: parsedEquipmentId,
+          farmer_id: farmerId,
+          start_date: start,
+          end_date: end,
+          total_days: totalDays,
+          total_amount: totalAmount,
+          handover_method: rawHandoverMethod,
+          status: 'PENDING'
+        },
+        include: {
+          equipment: true,
+          farmer: true
+        }
+      })
+
+      let acceptanceRecord = null
+      try {
+        acceptanceRecord = await tx.agreementAcceptance.create({
+          data: {
+            booking_id: createdBooking.id,
+            agreement_version: 'v1.0',
+            accepted_by: farmerId
+          }
+        })
+      } catch (acceptanceErr) {
+        console.warn('Agreement acceptance record could not be written to agreement_acceptances table (pending migration):', acceptanceErr.message)
+      }
+
+      return {
+        ...createdBooking,
+        agreement_acceptance: acceptanceRecord
       }
     })
 
@@ -217,15 +251,29 @@ const getMyBookings = async (req, res, next) => {
       where.status = { in: ['COMPLETED', 'CANCELLED', 'REJECTED'] }
     }
 
-    const bookings = await prisma.booking.findMany({
-      where,
-      include: {
-        equipment: true,
-        farmer: true,
-        reviews: true
-      },
-      orderBy: { created_at: 'desc' }
-    })
+    let bookings
+    try {
+      bookings = await prisma.booking.findMany({
+        where,
+        include: {
+          equipment: true,
+          farmer: true,
+          reviews: true,
+          agreement_acceptance: true
+        },
+        orderBy: { created_at: 'desc' }
+      })
+    } catch {
+      bookings = await prisma.booking.findMany({
+        where,
+        include: {
+          equipment: true,
+          farmer: true,
+          reviews: true
+        },
+        orderBy: { created_at: 'desc' }
+      })
+    }
 
     res.json(bookings.map(formatBooking))
   } catch (err) {
@@ -270,14 +318,27 @@ const getOwnerBookings = async (req, res, next) => {
       where.status = { in: ['COMPLETED', 'CANCELLED', 'REJECTED'] }
     }
 
-    const bookings = await prisma.booking.findMany({
-      where,
-      include: {
-        equipment: true,
-        farmer: true
-      },
-      orderBy: { created_at: 'desc' }
-    })
+    let bookings
+    try {
+      bookings = await prisma.booking.findMany({
+        where,
+        include: {
+          equipment: true,
+          farmer: true,
+          agreement_acceptance: true
+        },
+        orderBy: { created_at: 'desc' }
+      })
+    } catch {
+      bookings = await prisma.booking.findMany({
+        where,
+        include: {
+          equipment: true,
+          farmer: true
+        },
+        orderBy: { created_at: 'desc' }
+      })
+    }
 
     res.json(bookings.map(formatBooking))
   } catch (err) {

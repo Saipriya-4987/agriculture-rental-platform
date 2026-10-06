@@ -90,11 +90,19 @@ export interface LoginResponse {
   user: SafeUser
 }
 
+export interface AgreementAcceptance {
+  bookingId: number
+  agreementVersion: string
+  acceptedBy: number
+  acceptedAt: string
+}
+
 export interface CreateBookingData {
   equipmentId: number
   startDate: string
   endDate: string
   handoverMethod?: 'PICKUP' | 'DELIVERY' | string
+  agreementAccepted: boolean
 }
 
 export interface Review {
@@ -139,6 +147,7 @@ export interface Booking {
   farmer?: Partial<SafeUser>
   reviews?: Review[]
   isReviewed?: boolean
+  agreementAcceptance?: AgreementAcceptance
 }
 
 export interface CreateBookingResponse {

@@ -69,6 +69,14 @@ CREATE TABLE IF NOT EXISTS reviews (
     UNIQUE (booking_id, reviewer_id)
 );
 
+-- 5. Agreement Acceptances Table
+CREATE TABLE IF NOT EXISTS agreement_acceptances (
+    booking_id INTEGER PRIMARY KEY REFERENCES bookings(id) ON DELETE CASCADE,
+    agreement_version VARCHAR(50) NOT NULL DEFAULT 'v1.0',
+    accepted_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    accepted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Seed initial equipment data
 INSERT INTO equipment (
     id, name, category, category_value, state, state_value, district, district_value, village, village_value, city, price_per_day, image, image_alt, availability_from, availability_to, owner, rating, rating_count, description, features, availability
