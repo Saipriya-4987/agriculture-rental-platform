@@ -204,18 +204,13 @@ const createBooking = async (req, res, next) => {
         }
       })
 
-      let acceptanceRecord = null
-      try {
-        acceptanceRecord = await tx.agreementAcceptance.create({
-          data: {
-            booking_id: createdBooking.id,
-            agreement_version: 'v1.0',
-            accepted_by: farmerId
-          }
-        })
-      } catch (acceptanceErr) {
-        console.warn('Agreement acceptance record could not be written to agreement_acceptances table (pending migration):', acceptanceErr.message)
-      }
+      const acceptanceRecord = await tx.agreementAcceptance.create({
+        data: {
+          booking_id: createdBooking.id,
+          agreement_version: 'v1.0',
+          accepted_by: farmerId
+        }
+      })
 
       return {
         ...createdBooking,
