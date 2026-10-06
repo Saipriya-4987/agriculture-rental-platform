@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom'
 import {
   getMyBookings,
   cancelBooking,
-  activateBooking,
-  completeBooking,
+  pickupBooking,
+  requestReturnBooking,
   createReview,
   type Booking,
 } from '../services/api'
+import { StatusTimeline } from '../components/StatusTimeline'
 
 type TabType = 'all' | 'current' | 'past'
 
@@ -66,18 +67,22 @@ export default function MyBookings() {
     }
   }
 
-  async function handleActivate(bookingId: number) {
+  async function handlePickup(bookingId: number) {
+    if (!window.confirm('Confirm that you have physically received and inspected the equipment? This will immediately start your rental.')) {
+      return
+    }
+
     setActiveActionId(bookingId)
     setActionMessage(null)
     try {
-      const res = await activateBooking(bookingId)
-      setActionMessage({ text: 'Handover confirmed! Your rental is now ACTIVE.', type: 'success' })
+      const res = await pickupBooking(bookingId)
+      setActionMessage({ text: 'Receipt confirmed! Rental is now ACTIVE.', type: 'success' })
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? res.booking : b))
       )
     } catch (err) {
       setActionMessage({
-        text: err instanceof Error ? err.message : 'Failed to activate rental.',
+        text: err instanceof Error ? err.message : 'Failed to confirm pickup.',
         type: 'error',
       })
     } finally {
@@ -85,22 +90,22 @@ export default function MyBookings() {
     }
   }
 
-  async function handleComplete(bookingId: number) {
-    if (!window.confirm('Confirm that the equipment has been returned to the owner and rental is complete?')) {
+  async function handleRequestReturn(bookingId: number) {
+    if (!window.confirm('Confirm that you are ready to return this equipment to the owner?')) {
       return
     }
 
     setActiveActionId(bookingId)
     setActionMessage(null)
     try {
-      const res = await completeBooking(bookingId)
-      setActionMessage({ text: 'Equipment returned! Rental marked as COMPLETED.', type: 'success' })
+      const res = await requestReturnBooking(bookingId)
+      setActionMessage({ text: 'Return requested! Coordinate with owner to physically return the machinery.', type: 'success' })
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? res.booking : b))
       )
     } catch (err) {
       setActionMessage({
-        text: err instanceof Error ? err.message : 'Failed to complete rental.',
+        text: err instanceof Error ? err.message : 'Failed to request return.',
         type: 'error',
       })
     } finally {
@@ -160,7 +165,12 @@ export default function MyBookings() {
   }
 
   const currentBookings = useMemo(
-    () => bookings.filter((b) => ['PENDING', 'CONFIRMED', 'ACTIVE'].includes(b.status)),
+    () =>
+      bookings.filter((b) =>
+        ['PENDING', 'CONFIRMED', 'READY_FOR_HANDOVER', 'PICKED_UP', 'ACTIVE', 'RETURN_REQUESTED', 'RETURNED'].includes(
+          b.status
+        )
+      ),
     [bookings]
   )
 
@@ -186,9 +196,23 @@ export default function MyBookings() {
         )
       case 'CONFIRMED':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[4px] bg-[#ecfdf5] text-[#14532d] border border-[#d1fae5]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#166534]"></span>
-            Confirmed • Ready for Handover
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[4px] bg-blue-50 text-blue-800 border border-blue-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            Confirmed • Awaiting Preparation
+          </span>
+        )
+      case 'READY_FOR_HANDOVER':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[4px] bg-emerald-50 text-emerald-800 border border-emerald-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+            Ready for Handover • Awaiting Your Pickup
+          </span>
+        )
+      case 'PICKED_UP':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[4px] bg-teal-50 text-teal-800 border border-teal-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
+            Equipment Picked Up • Ready to Start
           </span>
         )
       case 'ACTIVE':
@@ -198,10 +222,24 @@ export default function MyBookings() {
             Active Rental • In Use
           </span>
         )
+      case 'RETURN_REQUESTED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[4px] bg-purple-50 text-purple-800 border border-purple-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse"></span>
+            Return Requested • Awaiting Owner
+          </span>
+        )
+      case 'RETURNED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[4px] bg-indigo-50 text-indigo-800 border border-indigo-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+            Equipment Returned • Owner Inspecting
+          </span>
+        )
       case 'COMPLETED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-[4px] bg-gray-100 text-gray-800 border border-gray-300">
-            ✓ Returned & Completed
+            ✓ Completed
           </span>
         )
       case 'CANCELLED':
@@ -249,153 +287,132 @@ export default function MyBookings() {
               to="/equipment"
               className="btn-nav"
             >
-              + Find Equipment
+              Browse Equipment
             </Link>
           </div>
         </div>
 
-        {/* Quick Stats Overview */}
-        {!loading && !error && bookings.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-3.5 shadow-sm">
-              <span className="text-xs text-gray-500 font-medium block">Total Bookings</span>
-              <span className="text-xl font-bold text-[#1f2937]">{bookings.length}</span>
-            </div>
-            <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-3.5 shadow-sm">
-              <span className="text-xs text-amber-700 font-medium block">Pending Approval</span>
-              <span className="text-xl font-bold text-amber-700">
-                {bookings.filter((b) => b.status === 'PENDING').length}
-              </span>
-            </div>
-            <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-3.5 shadow-sm">
-              <span className="text-xs text-[#166534] font-medium block">Active Rentals</span>
-              <span className="text-xl font-bold text-[#166534]">
-                {bookings.filter((b) => b.status === 'ACTIVE').length}
-              </span>
-            </div>
-            <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-3.5 shadow-sm">
-              <span className="text-xs text-blue-700 font-medium block">Completed Rentals</span>
-              <span className="text-xl font-bold text-blue-700">
-                {bookings.filter((b) => b.status === 'COMPLETED').length}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Alert Notifications */}
+        {/* Global Action Banner */}
         {actionMessage && (
           <div
-            className={`p-4 rounded-[8px] mb-6 text-sm font-medium flex items-center justify-between shadow-sm ${
+            className={`mb-6 p-4 rounded-[8px] flex items-center justify-between text-sm ${
               actionMessage.type === 'success'
-                ? 'bg-[#ecfdf5] text-[#14532d] border border-[#d1fae5]'
-                : 'bg-red-50 text-red-900 border border-red-200'
+                ? 'bg-[#ecfdf5] border border-[#d1fae5] text-[#14532d]'
+                : 'bg-red-50 border border-red-200 text-red-800'
             }`}
           >
-            <span>{actionMessage.text}</span>
+            <div className="flex items-center gap-2">
+              <span>{actionMessage.type === 'success' ? '✓' : '⚠️'}</span>
+              <span>{actionMessage.text}</span>
+            </div>
             <button
               onClick={() => setActionMessage(null)}
-              className="text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-gray-800 ml-4 cursor-pointer"
+              className="text-gray-400 hover:text-gray-600 font-bold ml-4 cursor-pointer"
             >
-              Dismiss
+              ✕
             </button>
           </div>
         )}
 
-        {/* Tab Filters */}
-        <div className="flex items-center gap-2 border-b border-[#e5e7eb] mb-6 pb-px">
+        {/* Status Filter Tabs */}
+        <div className="flex border-b border-[#e5e7eb] mb-6 gap-2">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2.5 text-sm font-semibold rounded-t-[6px] transition-colors cursor-pointer border-b-2 -mb-px ${
+            className={`pb-3 px-3 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
               activeTab === 'all'
-                ? 'border-[#166534] text-[#166534] bg-[#ecfdf5]/50'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'border-[#166534] text-[#166534]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             All Bookings ({bookings.length})
           </button>
           <button
             onClick={() => setActiveTab('current')}
-            className={`px-4 py-2.5 text-sm font-semibold rounded-t-[6px] transition-colors cursor-pointer border-b-2 -mb-px ${
+            className={`pb-3 px-3 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
               activeTab === 'current'
-                ? 'border-[#166534] text-[#166534] bg-[#ecfdf5]/50'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'border-[#166534] text-[#166534]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Current & Upcoming ({currentBookings.length})
+            In-Progress ({currentBookings.length})
           </button>
           <button
             onClick={() => setActiveTab('past')}
-            className={`px-4 py-2.5 text-sm font-semibold rounded-t-[6px] transition-colors cursor-pointer border-b-2 -mb-px ${
+            className={`pb-3 px-3 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
               activeTab === 'past'
-                ? 'border-[#166534] text-[#166534] bg-[#ecfdf5]/50'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'border-[#166534] text-[#166534]'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Past & History ({pastBookings.length})
+            Past / Completed ({pastBookings.length})
           </button>
         </div>
 
-        {/* Content States */}
-        {loading ? (
-          <div className="text-center py-20 bg-white border border-[#e5e7eb] rounded-[10px] shadow-sm">
-            <div className="inline-block w-8 h-8 border-3 border-[#166534] border-t-transparent rounded-full animate-spin mb-3"></div>
-            <p className="text-gray-600 font-medium">Loading your booking history...</p>
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-12 text-center text-gray-500 shadow-sm">
+            <div className="inline-block animate-spin text-2xl mb-2">⏳</div>
+            <p className="text-sm">Loading your bookings...</p>
           </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-[10px] p-8 text-center shadow-sm">
-            <p className="text-red-800 font-semibold mb-3">{error}</p>
+        )}
+
+        {/* Error State */}
+        {!loading && error && (
+          <div className="bg-red-50 border border-red-200 rounded-[10px] p-8 text-center text-red-700 shadow-sm">
+            <p className="font-semibold mb-2">Failed to load bookings</p>
+            <p className="text-sm mb-4">{error}</p>
             <button
               onClick={loadBookings}
-              className="px-5 py-2 bg-red-600 text-white font-semibold text-sm rounded-[6px] hover:bg-red-700 transition-colors cursor-pointer shadow-sm"
+              className="px-4 py-2 bg-[#166534] text-white rounded-[6px] text-xs font-semibold cursor-pointer"
             >
               Retry
             </button>
           </div>
-        ) : displayedBookings.length === 0 ? (
-          <div className="text-center py-16 bg-white border border-[#e5e7eb] rounded-[10px] p-8 shadow-sm">
-            <span className="text-4xl mb-3 block">🌾</span>
-            <h2 className="text-lg font-bold text-[#1f2937] mb-1">
-              {activeTab === 'current'
-                ? 'No Active or Upcoming Bookings'
-                : activeTab === 'past'
-                ? 'No Past Rental History'
-                : 'No Bookings Found'}
-            </h2>
-            <p className="text-gray-600 text-sm mb-6 max-w-[420px] mx-auto">
-              {activeTab === 'current'
-                ? 'You do not have any ongoing rentals or pending requests right now.'
-                : activeTab === 'past'
-                ? 'Completed, cancelled, and rejected rentals will appear in your past history.'
-                : "You haven't requested any equipment rentals yet. Browse available tractors, harvesters, and tillers!"}
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && displayedBookings.length === 0 && (
+          <div className="bg-white border border-[#e5e7eb] rounded-[10px] p-12 text-center shadow-sm">
+            <span className="text-4xl block mb-3">🚜</span>
+            <h3 className="text-lg font-bold text-[#1f2937] mb-1">
+              {activeTab === 'all'
+                ? 'No rental bookings found'
+                : activeTab === 'current'
+                ? 'No in-progress rentals'
+                : 'No past rentals yet'}
+            </h3>
+            <p className="text-gray-500 text-sm max-w-md mx-auto mb-5">
+              {activeTab === 'all'
+                ? 'You have not placed any equipment rental requests yet. Explore our verified machinery directory!'
+                : activeTab === 'current'
+                ? 'You do not have any active or pending rentals right now.'
+                : 'Completed and closed rentals will show up here.'}
             </p>
             <Link
               to="/equipment"
-              className="px-6 py-2.5 bg-[#166534] hover:bg-[#14532d] text-white font-semibold text-sm rounded-[6px] transition-colors inline-block shadow-sm"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#166534] hover:bg-[#14532d] text-white text-sm font-semibold rounded-[6px] transition-colors"
             >
-              Browse Available Equipment
+              Browse Equipment Directory →
             </Link>
           </div>
-        ) : (
+        )}
+
+        {/* Bookings List */}
+        {!loading && !error && displayedBookings.length > 0 && (
           <div className="space-y-4">
             {displayedBookings.map((booking) => (
               <div
                 key={booking.id}
-                className="bg-white border border-[#e5e7eb] rounded-[10px] p-5 shadow-sm hover:border-gray-300 transition-all"
+                className="bg-white border border-[#e5e7eb] rounded-[10px] p-5 shadow-sm hover:shadow-md transition-shadow"
               >
-                {/* Header row: Equipment name + status + price */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#f3f4f6]">
-                  <div className="flex items-start gap-4">
-                    {booking.equipment?.image ? (
-                      <img
-                        src={booking.equipment.image}
-                        alt={booking.equipment.name || 'Equipment'}
-                        className="w-20 h-20 object-cover rounded-[8px] border border-[#e5e7eb] flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-20 h-20 bg-[#ecfdf5] rounded-[8px] border border-[#d1fae5] flex items-center justify-center text-2xl flex-shrink-0">
-                        🚜
-                      </div>
-                    )}
+                {/* Header: Title + Status + Price */}
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-4 border-b border-[#f3f4f6]">
+                  <div className="flex items-start gap-3.5">
+                    <img
+                      src={booking.equipment?.image || 'https://placehold.co/120x90?text=Equipment'}
+                      alt={booking.equipment?.name || 'Equipment'}
+                      className="w-18 h-18 sm:w-20 sm:h-20 object-cover rounded-[8px] border border-[#e5e7eb] flex-shrink-0"
+                    />
                     <div>
                       <div className="flex items-center gap-2.5 flex-wrap mb-1">
                         <Link
@@ -452,7 +469,7 @@ export default function MyBookings() {
                       ✓ Rental Agreement Accepted ({booking.agreementAcceptance?.agreementVersion || 'v1.0'})
                     </span>
                     <span className="text-gray-500 hidden sm:inline">
-                      • Terms bound to this rental
+                      • Terms legally bound to this rental
                     </span>
                   </div>
                   {booking.agreementAcceptance?.acceptedAt && (
@@ -462,7 +479,49 @@ export default function MyBookings() {
                   )}
                 </div>
 
-                {/* Owner Rejection Notice */}
+                {/* Status-specific Guidance Banners */}
+                {booking.status === 'PENDING' && (
+                  <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-[8px] text-xs text-amber-900">
+                    ⏳ <strong>Waiting for owner:</strong> Your request was sent to the owner for review. You can cancel if plans change.
+                  </div>
+                )}
+
+                {booking.status === 'CONFIRMED' && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-[8px] text-xs text-blue-900">
+                    🤝 <strong>Booking Approved:</strong> The owner is preparing the equipment. Once ready, they will mark it ready for handover.
+                  </div>
+                )}
+
+                {booking.status === 'READY_FOR_HANDOVER' && (
+                  <div className="mt-2 p-3 bg-emerald-50 border border-emerald-300 rounded-[8px] text-xs text-emerald-900">
+                    🎉 <strong>Equipment Ready!</strong> The owner has prepared the equipment. Please meet to take possession, inspect condition, and confirm receipt below.
+                  </div>
+                )}
+
+                {booking.status === 'PICKED_UP' && (
+                  <div className="mt-2 p-3 bg-teal-50 border border-teal-200 rounded-[8px] text-xs text-teal-900">
+                    🚜 <strong>Equipment In Possession:</strong> You have received the machinery. Click <strong>Start Active Rental</strong> to officially begin your rental period.
+                  </div>
+                )}
+
+                {booking.status === 'ACTIVE' && (
+                  <div className="mt-2 p-3 bg-[#ecfdf5] border border-[#d1fae5] rounded-[8px] text-xs text-[#14532d]">
+                    🌾 <strong>Rental in progress:</strong> When your work is finished and you are ready to return the machinery to the owner, click <strong>Request Equipment Return</strong>.
+                  </div>
+                )}
+
+                {booking.status === 'RETURN_REQUESTED' && (
+                  <div className="mt-2 p-3 bg-purple-50 border border-purple-200 rounded-[8px] text-xs text-purple-900">
+                    🔄 <strong>Return Requested:</strong> You have initiated return. Please physically deliver the equipment to the owner so they can confirm receipt.
+                  </div>
+                )}
+
+                {booking.status === 'RETURNED' && (
+                  <div className="mt-2 p-3 bg-indigo-50 border border-indigo-200 rounded-[8px] text-xs text-indigo-900">
+                    🔍 <strong>Equipment Returned:</strong> The owner has physically received the machinery and is conducting post-rental inspection before completing.
+                  </div>
+                )}
+
                 {booking.rejectionReason && booking.status === 'REJECTED' && (
                   <div className="mt-2 p-3.5 bg-red-50 border border-red-200 rounded-[8px] text-xs text-red-800">
                     <strong className="font-semibold block mb-0.5">Reason for Cancellation / Rejection:</strong>
@@ -470,47 +529,8 @@ export default function MyBookings() {
                   </div>
                 )}
 
-                {/* Return Flow Guidance Card */}
-                {booking.status === 'ACTIVE' && (
-                  <div className="mt-2 p-3 bg-[#ecfdf5] border border-[#d1fae5] rounded-[8px] flex items-center justify-between text-xs text-[#14532d]">
-                    <span>
-                      🌾 <strong>Rental in progress:</strong> Once you are done using the equipment and have returned it to the owner, click <strong>Return Equipment</strong> to complete this rental.
-                    </span>
-                  </div>
-                )}
-
-                {booking.status === 'CONFIRMED' && (
-                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-[8px] flex items-center justify-between text-xs text-blue-900">
-                    <span>
-                      🤝 <strong>Booking Approved:</strong> Meet with the owner or await delivery. When handover occurs, click <strong>Start Rental</strong> to mark it active.
-                    </span>
-                  </div>
-                )}
-
-                {/* Completed Rental Review Notice / Badge */}
-                {booking.status === 'COMPLETED' && (
-                  <div className="mt-2 p-3 bg-[#f9fafb] border border-[#e5e7eb] rounded-[8px] text-xs">
-                    {booking.isReviewed || (booking.reviews && booking.reviews.length > 0) ? (
-                      <div className="flex items-center justify-between text-[#1f2937]">
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <span className="text-[#f59e0b] font-bold">★ Reviewed</span>
-                          <span>Rating: {booking.reviews?.[0]?.rating || 5}/5</span>
-                        </span>
-                        {booking.reviews?.[0]?.comment && (
-                          <span className="text-gray-500 italic truncate max-w-[280px]">
-                            "{booking.reviews[0].comment}"
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between text-[#1f2937]">
-                        <span>
-                          ⭐ <strong>Rental Complete:</strong> How was your experience? Share feedback to help other farmers!
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Status Timeline & Audit Trail */}
+                <StatusTimeline status={booking.status} events={booking.statusEvents} />
 
                 {/* Inline Review Form for Completed Bookings */}
                 {reviewingBookingId === booking.id && (
@@ -528,7 +548,6 @@ export default function MyBookings() {
                       </div>
                     )}
 
-                    {/* Star Rating Selector */}
                     <div className="mb-3">
                       <label className="text-xs font-semibold block text-gray-700 mb-1">
                         Your Rating (1 to 5 Stars) *
@@ -553,7 +572,6 @@ export default function MyBookings() {
                       </div>
                     </div>
 
-                    {/* Comment */}
                     <div className="mb-3">
                       <label htmlFor={`review-comment-${booking.id}`} className="text-xs font-semibold block text-gray-700 mb-1">
                         Written Feedback / Experience (Optional)
@@ -588,15 +606,16 @@ export default function MyBookings() {
                   </form>
                 )}
 
-                {/* Actions Bar */}
+                {/* Actions Bar (Strict Role Mapping) */}
                 <div className="mt-3 pt-3 border-t border-[#f3f4f6] flex flex-wrap items-center justify-between gap-3">
                   <div className="text-xs text-gray-500">
                     {booking.status === 'COMPLETED' && (
-                      <span className="text-gray-600 font-medium">✓ Equipment returned and verified.</span>
+                      <span className="text-gray-600 font-medium">✓ Rental closed and verified by owner.</span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2.5 ml-auto">
+                    {/* FARMER: PENDING -> CANCELLED */}
                     {booking.status === 'PENDING' && (
                       <button
                         type="button"
@@ -608,29 +627,31 @@ export default function MyBookings() {
                       </button>
                     )}
 
-                    {booking.status === 'CONFIRMED' && (
+                    {/* FARMER: READY_FOR_HANDOVER -> PICKED_UP -> ACTIVE (atomic two-party handover) */}
+                    {booking.status === 'READY_FOR_HANDOVER' && (
                       <button
                         type="button"
                         disabled={activeActionId === booking.id}
-                        onClick={() => handleActivate(booking.id)}
+                        onClick={() => handlePickup(booking.id)}
                         className="px-4 py-1.5 text-xs font-bold rounded-[6px] bg-[#166534] hover:bg-[#14532d] text-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
                       >
-                        {activeActionId === booking.id ? 'Starting...' : 'Start Rental (Take Handover)'}
+                        {activeActionId === booking.id ? 'Confirming...' : '🤝 Confirm Receipt & Start Rental'}
                       </button>
                     )}
 
+                    {/* FARMER: ACTIVE -> RETURN_REQUESTED */}
                     {booking.status === 'ACTIVE' && (
                       <button
                         type="button"
                         disabled={activeActionId === booking.id}
-                        onClick={() => handleComplete(booking.id)}
-                        className="px-4 py-1.5 text-xs font-bold rounded-[6px] bg-[#166534] hover:bg-[#14532d] text-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+                        onClick={() => handleRequestReturn(booking.id)}
+                        className="px-4 py-1.5 text-xs font-bold rounded-[6px] bg-purple-700 hover:bg-purple-800 text-white transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
                       >
-                        {activeActionId === booking.id ? 'Completing...' : 'Return Equipment (Complete Rental)'}
+                        {activeActionId === booking.id ? 'Submitting...' : '🔄 Request Equipment Return'}
                       </button>
                     )}
 
-                    {/* Leave Review Action for Completed Bookings */}
+                    {/* Review Action (Only for COMPLETED) */}
                     {booking.status === 'COMPLETED' &&
                       !booking.isReviewed &&
                       (!booking.reviews || booking.reviews.length === 0) &&

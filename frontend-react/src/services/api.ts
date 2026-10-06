@@ -130,6 +130,17 @@ export interface CreateReviewResponse {
   review: Review
 }
 
+export interface StatusEvent {
+  id: number
+  bookingId: number
+  fromStatus?: string | null
+  toStatus: string
+  actorId: number
+  actorRole: string
+  note?: string | null
+  createdAt: string
+}
+
 export interface Booking {
   id: number
   equipmentId: number
@@ -148,6 +159,7 @@ export interface Booking {
   reviews?: Review[]
   isReviewed?: boolean
   agreementAcceptance?: AgreementAcceptance
+  statusEvents?: StatusEvent[]
 }
 
 export interface CreateBookingResponse {
@@ -433,8 +445,11 @@ export async function updateBookingStatus(
 /**
  * Confirm a pending booking (Owner action)
  */
-export async function confirmBooking(id: number): Promise<{ message: string; booking: Booking }> {
-  return updateBookingStatus(id, 'CONFIRMED')
+export async function confirmBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/confirm`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
 }
 
 /**
@@ -444,28 +459,116 @@ export async function rejectBooking(
   id: number,
   rejectionReason?: string
 ): Promise<{ message: string; booking: Booking }> {
-  return updateBookingStatus(id, 'REJECTED', rejectionReason)
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/reject`, {
+    method: 'PATCH',
+    body: JSON.stringify({ rejectionReason }),
+  })
+}
+
+/**
+ * Mark booking ready for handover (Owner action)
+ */
+export async function markReadyBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/ready`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
+}
+
+/**
+ * Confirm equipment pickup / physical receipt (Farmer action)
+ */
+export async function pickupBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/pickup`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
 }
 
 /**
  * Cancel a pending booking (Farmer action)
  */
-export async function cancelBooking(id: number): Promise<{ message: string; booking: Booking }> {
-  return updateBookingStatus(id, 'CANCELLED')
+export async function cancelBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/cancel`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
 }
 
 /**
- * Activate a confirmed booking (Handover started)
+ * Activate a picked-up booking
  */
-export async function activateBooking(id: number): Promise<{ message: string; booking: Booking }> {
-  return updateBookingStatus(id, 'ACTIVE')
+export async function activateBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/activate`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
 }
 
 /**
- * Complete an active booking (Equipment returned)
+ * Request equipment return (Farmer action)
  */
-export async function completeBooking(id: number): Promise<{ message: string; booking: Booking }> {
-  return updateBookingStatus(id, 'COMPLETED')
+export async function requestReturnBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/request-return`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
+}
+
+/**
+ * Confirm equipment physically received back (Owner action)
+ */
+export async function confirmReturnBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/confirm-return`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
+}
+
+/**
+ * Complete rental after inspection (Owner action)
+ */
+export async function completeBooking(id: number, note?: string): Promise<{ message: string; booking: Booking }> {
+  return apiRequest<{ message: string; booking: Booking }>(`/bookings/${id}/complete`, {
+    method: 'PATCH',
+    body: JSON.stringify({ note }),
+  })
+}
+
+export interface BookingQuoteRequest {
+  equipmentId: number
+  startDate: string
+  endDate: string
+}
+
+export interface BookingQuoteResponse {
+  equipmentId: number
+  startDate: string
+  endDate: string
+  totalDays: number
+  pricePerDay: number
+  totalAmount: number
+  isAvailable: boolean
+  message: string
+}
+
+/**
+ * Server-side read-only price quote calculation
+ * POST /api/bookings/quote
+ */
+export async function getBookingQuote(data: BookingQuoteRequest): Promise<BookingQuoteResponse> {
+  return apiRequest<BookingQuoteResponse>('/bookings/quote', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/**
+ * Fetch booking lifecycle timeline events
+ * GET /api/bookings/:id/timeline
+ */
+export async function getBookingTimeline(id: number): Promise<{ bookingId: number; currentStatus: string; events: StatusEvent[] }> {
+  return apiRequest<{ bookingId: number; currentStatus: string; events: StatusEvent[] }>(`/bookings/${id}/timeline`)
 }
 
 /**
@@ -500,8 +603,14 @@ export const bookingApi = {
   confirm: confirmBooking,
   reject: rejectBooking,
   cancel: cancelBooking,
+  ready: markReadyBooking,
+  pickup: pickupBooking,
   activate: activateBooking,
+  requestReturn: requestReturnBooking,
+  confirmReturn: confirmReturnBooking,
   complete: completeBooking,
+  quote: getBookingQuote,
+  getTimeline: getBookingTimeline,
 }
 
 export const equipmentApi = {

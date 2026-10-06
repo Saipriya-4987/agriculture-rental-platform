@@ -5,6 +5,7 @@ const equipmentRoutes = require('./routes/equipmentRoutes')
 const authRoutes = require('./routes/authRoutes')
 const bookingRoutes = require('./routes/bookingRoutes')
 const reviewRoutes = require('./routes/reviewRoutes')
+const adminRoutes = require('./routes/adminRoutes')
 const { errorHandler } = require('./middleware/errorHandler')
 const { requestLogger } = require('./middleware/requestLogger')
 
@@ -67,6 +68,9 @@ app.use('/api/bookings', bookingRoutes)
 
 // Review routes
 app.use('/api/reviews', reviewRoutes)
+
+// Admin routes
+app.use('/api/admin', adminRoutes)
 
 // 404 handler for all unknown routes (must be before errorHandler)
 app.use((req, res, next) => {

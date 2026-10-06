@@ -167,6 +167,11 @@ const login = async (req, res, next) => {
       throw new AppError('Invalid email or password', 401)
     }
 
+    // 4b. Check if account is suspended
+    if (user.status === 'SUSPENDED') {
+      throw new AppError('Your account has been suspended. Please contact support.', 403)
+    }
+
     // 5. Generate signed JWT containing user id and role
     const token = jwt.sign(
       {

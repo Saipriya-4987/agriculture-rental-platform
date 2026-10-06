@@ -41,6 +41,9 @@ CREATE TABLE IF NOT EXISTS equipment (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Extension for GiST equality on integer
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 -- 3. Bookings Table
 CREATE TABLE IF NOT EXISTS bookings (
     id SERIAL PRIMARY KEY,
@@ -51,11 +54,35 @@ CREATE TABLE IF NOT EXISTS bookings (
     total_days INTEGER NOT NULL CHECK (total_days > 0),
     total_amount NUMERIC(10, 2) NOT NULL CHECK (total_amount >= 0),
     handover_method VARCHAR(50) NOT NULL DEFAULT 'PICKUP' CHECK (handover_method IN ('PICKUP', 'DELIVERY')),
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'CONFIRMED', 'REJECTED', 'CANCELLED', 'ACTIVE', 'COMPLETED', 'DISPUTED')),
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'CONFIRMED', 'READY_FOR_HANDOVER', 'PICKED_UP', 'ACTIVE', 'RETURN_REQUESTED', 'RETURNED', 'COMPLETED', 'REJECTED', 'CANCELLED')),
     rejection_reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Double-Booking Prevention: Exclusion constraint for date overlap on reserving statuses
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'bookings_no_overlap'
+    ) THEN
+        ALTER TABLE bookings
+        ADD CONSTRAINT bookings_no_overlap
+        EXCLUDE USING GIST (
+            equipment_id WITH =,
+            daterange(start_date, (end_date + INTERVAL '1 day')::date, '[)') WITH &&
+        )
+        WHERE (status IN (
+            'CONFIRMED',
+            'READY_FOR_HANDOVER',
+            'PICKED_UP',
+            'ACTIVE',
+            'RETURN_REQUESTED',
+            'RETURNED'
+        ));
+    END IF;
+END $$;
+
 
 -- 4. Reviews Table
 CREATE TABLE IF NOT EXISTS reviews (
@@ -76,6 +103,20 @@ CREATE TABLE IF NOT EXISTS agreement_acceptances (
     accepted_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     accepted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 6. Status Events Table (Booking Lifecycle State Machine History)
+CREATE TABLE IF NOT EXISTS status_events (
+    id SERIAL PRIMARY KEY,
+    booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    from_status VARCHAR(50),
+    to_status VARCHAR(50) NOT NULL,
+    actor_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    actor_role VARCHAR(50) NOT NULL,
+    note TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_status_events_booking_id ON status_events(booking_id);
 
 -- Seed initial equipment data
 INSERT INTO equipment (
