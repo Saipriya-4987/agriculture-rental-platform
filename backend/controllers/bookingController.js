@@ -15,6 +15,16 @@ class AppError extends Error {
   }
 }
 
+// Booking statuses that reserve/block equipment dates (PRD v3 §25, TRD §7.5)
+const BLOCKING_STATUSES = [
+  'CONFIRMED',
+  'READY_FOR_HANDOVER',
+  'PICKED_UP',
+  'ACTIVE',
+  'RETURN_REQUESTED',
+  'RETURNED'
+]
+
 // Helper to format Prisma booking model to safe client JSON
 const formatBooking = (booking) => {
   if (!booking) return null
@@ -197,22 +207,32 @@ const createBooking = async (req, res, next) => {
     }
 
     // 5b. Validate equipment availability window (if defined)
-    if (equipment.availability_from) {
-      const availFrom = new Date(equipment.availability_from)
-      if (start < availFrom) {
-        throw new AppError(
-          `Equipment is only available starting ${equipment.availability_from.toISOString().split('T')[0]}`,
-          400
-        )
+    const fromStr = equipment.availability_from
+      ? (typeof equipment.availability_from === 'string'
+          ? equipment.availability_from.split('T')[0]
+          : equipment.availability_from.toISOString().split('T')[0])
+      : null
+    const toStr = equipment.availability_to
+      ? (typeof equipment.availability_to === 'string'
+          ? equipment.availability_to.split('T')[0]
+          : equipment.availability_to.toISOString().split('T')[0])
+      : null
+
+    if (fromStr && toStr) {
+      const availFrom = new Date(fromStr + 'T00:00:00Z')
+      const availTo = new Date(toStr + 'T00:00:00Z')
+      if (start < availFrom || end > availTo) {
+        throw new AppError(`Available from ${fromStr} to ${toStr}`, 400)
       }
-    }
-    if (equipment.availability_to) {
-      const availTo = new Date(equipment.availability_to)
+    } else if (fromStr) {
+      const availFrom = new Date(fromStr + 'T00:00:00Z')
+      if (start < availFrom) {
+        throw new AppError(`Available from ${fromStr}`, 400)
+      }
+    } else if (toStr) {
+      const availTo = new Date(toStr + 'T00:00:00Z')
       if (end > availTo) {
-        throw new AppError(
-          `Equipment is only available until ${equipment.availability_to.toISOString().split('T')[0]}`,
-          400
-        )
+        throw new AppError(`Available until ${toStr}`, 400)
       }
     }
 
@@ -222,12 +242,12 @@ const createBooking = async (req, res, next) => {
     const pricePerDay = Number(equipment.price_per_day)
     const totalAmount = totalDays * pricePerDay
 
-    // 7. Check for overlapping active or confirmed bookings
+    // 7. Check for overlapping blocking bookings (PRD §25: PENDING does NOT block dates)
     const overlapping = await prisma.booking.findFirst({
       where: {
         equipment_id: parsedEquipmentId,
         status: {
-          in: ['PENDING', 'CONFIRMED', 'READY_FOR_HANDOVER', 'PICKED_UP', 'ACTIVE', 'RETURN_REQUESTED', 'RETURNED']
+          in: BLOCKING_STATUSES
         },
         start_date: {
           lte: end
@@ -239,7 +259,13 @@ const createBooking = async (req, res, next) => {
     })
 
     if (overlapping) {
-      throw new AppError('Equipment is already booked for the selected dates', 409)
+      const oStart = overlapping.start_date
+        ? (typeof overlapping.start_date === 'string' ? overlapping.start_date.split('T')[0] : overlapping.start_date.toISOString().split('T')[0])
+        : ''
+      const oEnd = overlapping.end_date
+        ? (typeof overlapping.end_date === 'string' ? overlapping.end_date.split('T')[0] : overlapping.end_date.toISOString().split('T')[0])
+        : ''
+      throw new AppError(`Unavailable for selected dates: Equipment is booked from ${oStart} to ${oEnd}`, 409)
     }
 
     // 8. Always set farmer_id from req.user.id (never from request body)
@@ -294,7 +320,7 @@ const createBooking = async (req, res, next) => {
     })
 
     res.status(201).json({
-      message: 'Booking request submitted successfully',
+      message: 'Booking request submitted successfully. Waiting for owner approval.',
       booking: formatBooking(newBooking)
     })
   } catch (err) {
@@ -302,7 +328,7 @@ const createBooking = async (req, res, next) => {
       err.code === '23P01' ||
       (err.message && (err.message.includes('23P01') || err.message.includes('bookings_no_overlap') || err.message.includes('exclusion constraint')))
     ) {
-      return next(new AppError('Equipment is already booked for those dates.', 409))
+      return next(new AppError('Unavailable for selected dates: Equipment is already booked for those dates.', 409))
     }
     next(err)
   }
@@ -450,6 +476,38 @@ const transitionBooking = async (bookingId, targetStatus, user, note = null) => 
 
     if (current.status !== booking.status) {
       throw new AppError('Booking status has changed. Please refresh and try again.', 409)
+    }
+
+    // When confirming, ensure no other overlapping booking is already reserving this equipment
+    if (normalizedTargetStatus === 'CONFIRMED') {
+      const conflicting = await tx.booking.findFirst({
+        where: {
+          equipment_id: booking.equipment_id,
+          id: { not: id },
+          status: {
+            in: BLOCKING_STATUSES
+          },
+          start_date: {
+            lte: booking.end_date
+          },
+          end_date: {
+            gte: booking.start_date
+          }
+        }
+      })
+
+      if (conflicting) {
+        const cStart = conflicting.start_date
+          ? (typeof conflicting.start_date === 'string' ? conflicting.start_date.split('T')[0] : conflicting.start_date.toISOString().split('T')[0])
+          : ''
+        const cEnd = conflicting.end_date
+          ? (typeof conflicting.end_date === 'string' ? conflicting.end_date.split('T')[0] : conflicting.end_date.toISOString().split('T')[0])
+          : ''
+        throw new AppError(
+          `Cannot confirm booking: Equipment is already booked from ${cStart} to ${cEnd}.`,
+          409
+        )
+      }
     }
 
     // 1. Create the immutable StatusEvent entry
@@ -799,38 +857,78 @@ const getBookingQuote = async (req, res, next) => {
       throw new AppError('Equipment not found', 404)
     }
 
-    // 4. Validate equipment availability window (if specified)
-    if (equipment.availability_from) {
-      const availFrom = new Date(equipment.availability_from)
-      if (start < availFrom) {
-        throw new AppError(
-          `Equipment is only available starting ${equipment.availability_from.toISOString().split('T')[0]}`,
-          400
-        )
-      }
-    }
-    if (equipment.availability_to) {
-      const availTo = new Date(equipment.availability_to)
-      if (end > availTo) {
-        throw new AppError(
-          `Equipment is only available until ${equipment.availability_to.toISOString().split('T')[0]}`,
-          400
-        )
-      }
-    }
-
-    // 5. Calculate totalDays and totalAmount
+    // 4. Calculate totalDays and totalAmount
     const diffMs = end.getTime() - start.getTime()
     const totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1
     const pricePerDay = Number(equipment.price_per_day)
     const totalAmount = totalDays * pricePerDay
 
-    // 6. Check if dates conflict with active/confirmed bookings
+    // 5. Validate equipment availability window (if specified)
+    const fromStr = equipment.availability_from
+      ? (typeof equipment.availability_from === 'string'
+          ? equipment.availability_from.split('T')[0]
+          : equipment.availability_from.toISOString().split('T')[0])
+      : null
+    const toStr = equipment.availability_to
+      ? (typeof equipment.availability_to === 'string'
+          ? equipment.availability_to.split('T')[0]
+          : equipment.availability_to.toISOString().split('T')[0])
+      : null
+
+    if (fromStr && toStr) {
+      const availFrom = new Date(fromStr + 'T00:00:00Z')
+      const availTo = new Date(toStr + 'T00:00:00Z')
+      if (start < availFrom || end > availTo) {
+        return res.json({
+          equipmentId: parsedEquipmentId,
+          startDate: startDateStr,
+          endDate: endDateStr,
+          totalDays,
+          pricePerDay,
+          totalAmount,
+          isAvailable: false,
+          reason: 'OUTSIDE_AVAILABILITY',
+          message: `Available from ${fromStr} to ${toStr}`
+        })
+      }
+    } else if (fromStr) {
+      const availFrom = new Date(fromStr + 'T00:00:00Z')
+      if (start < availFrom) {
+        return res.json({
+          equipmentId: parsedEquipmentId,
+          startDate: startDateStr,
+          endDate: endDateStr,
+          totalDays,
+          pricePerDay,
+          totalAmount,
+          isAvailable: false,
+          reason: 'OUTSIDE_AVAILABILITY',
+          message: `Available from ${fromStr}`
+        })
+      }
+    } else if (toStr) {
+      const availTo = new Date(toStr + 'T00:00:00Z')
+      if (end > availTo) {
+        return res.json({
+          equipmentId: parsedEquipmentId,
+          startDate: startDateStr,
+          endDate: endDateStr,
+          totalDays,
+          pricePerDay,
+          totalAmount,
+          isAvailable: false,
+          reason: 'OUTSIDE_AVAILABILITY',
+          message: `Available until ${toStr}`
+        })
+      }
+    }
+
+    // 6. Check if dates conflict with active/confirmed bookings (PENDING does NOT block dates)
     const overlapping = await prisma.booking.findFirst({
       where: {
         equipment_id: parsedEquipmentId,
         status: {
-          in: ['PENDING', 'CONFIRMED', 'READY_FOR_HANDOVER', 'PICKED_UP', 'ACTIVE', 'RETURN_REQUESTED', 'RETURNED']
+          in: BLOCKING_STATUSES
         },
         start_date: {
           lte: end
@@ -841,7 +939,29 @@ const getBookingQuote = async (req, res, next) => {
       }
     })
 
-    const isAvailable = !overlapping
+    if (overlapping) {
+      const oStart = overlapping.start_date
+        ? (typeof overlapping.start_date === 'string' ? overlapping.start_date.split('T')[0] : overlapping.start_date.toISOString().split('T')[0])
+        : ''
+      const oEnd = overlapping.end_date
+        ? (typeof overlapping.end_date === 'string' ? overlapping.end_date.split('T')[0] : overlapping.end_date.toISOString().split('T')[0])
+        : ''
+      return res.json({
+        equipmentId: parsedEquipmentId,
+        startDate: startDateStr,
+        endDate: endDateStr,
+        totalDays,
+        pricePerDay,
+        totalAmount,
+        isAvailable: false,
+        reason: 'BLOCKED_DATES',
+        conflict: {
+          startDate: oStart,
+          endDate: oEnd
+        },
+        message: 'Unavailable for selected dates'
+      })
+    }
 
     res.json({
       equipmentId: parsedEquipmentId,
@@ -850,8 +970,8 @@ const getBookingQuote = async (req, res, next) => {
       totalDays,
       pricePerDay,
       totalAmount,
-      isAvailable,
-      message: isAvailable ? 'Dates are available' : 'Equipment is already booked for the selected dates'
+      isAvailable: true,
+      message: 'Available for selected dates'
     })
   } catch (err) {
     next(err)

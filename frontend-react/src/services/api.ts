@@ -22,6 +22,7 @@ export interface Equipment {
   features?: string[]
   availability?: string[]
   availabilityNote?: string
+  reservedRanges?: Array<{ startDate: string; endDate: string }>
 }
 
 export interface CreateEquipmentData {

@@ -42,7 +42,17 @@ const formatEquipment = (item) => {
     ratingCount: Number(item.rating_count || 0),
     description: item.description || '',
     features: item.features || [],
-    availability: item.availability || []
+    availability: item.availability || [],
+    reservedRanges: item.bookings && Array.isArray(item.bookings)
+      ? item.bookings.map((b) => ({
+          startDate: typeof b.start_date === 'string'
+            ? b.start_date.split('T')[0]
+            : b.start_date.toISOString().split('T')[0],
+          endDate: typeof b.end_date === 'string'
+            ? b.end_date.split('T')[0]
+            : b.end_date.toISOString().split('T')[0]
+        }))
+      : []
   }
 }
 
@@ -68,7 +78,22 @@ const getEquipmentById = async (req, res, next) => {
     }
 
     const item = await prisma.equipment.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        bookings: {
+          where: {
+            status: {
+              in: ['CONFIRMED', 'READY_FOR_HANDOVER', 'PICKED_UP', 'ACTIVE', 'RETURN_REQUESTED', 'RETURNED']
+            }
+          },
+          select: {
+            id: true,
+            start_date: true,
+            end_date: true,
+            status: true
+          }
+        }
+      }
     })
 
     if (!item) {

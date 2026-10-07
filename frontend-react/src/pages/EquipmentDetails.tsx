@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
+import { useState, useEffect, useMemo, type FormEvent, type ChangeEvent } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import EquipmentImage from '../components/EquipmentImage'
 import {
@@ -118,6 +118,60 @@ function EquipmentDetails() {
     }
   }, [id])
 
+  const availabilityState = useMemo(() => {
+    if (!rentalFrom || !rentalUntil) {
+      return { status: 'idle' as const, message: '' }
+    }
+
+    if (rentalUntil < rentalFrom) {
+      return {
+        status: 'invalid_order' as const,
+        message: 'Rental End Date cannot be earlier than Rental Start Date.',
+      }
+    }
+
+    // Equipment availability window check
+    const fromStr = equipment?.availabilityFrom
+    const toStr = equipment?.availabilityTo
+    if (fromStr && toStr) {
+      if (rentalFrom < fromStr || rentalUntil > toStr) {
+        return {
+          status: 'outside_window' as const,
+          message: `Available from ${fromStr} to ${toStr}`,
+        }
+      }
+    } else if (fromStr && rentalFrom < fromStr) {
+      return {
+        status: 'outside_window' as const,
+        message: `Available from ${fromStr}`,
+      }
+    } else if (toStr && rentalUntil > toStr) {
+      return {
+        status: 'outside_window' as const,
+        message: `Available until ${toStr}`,
+      }
+    }
+
+    // Check reserved ranges (CONFIRMED, ACTIVE, etc.)
+    if (equipment?.reservedRanges && equipment.reservedRanges.length > 0) {
+      const conflict = equipment.reservedRanges.find(
+        (r) => r.startDate <= rentalUntil && r.endDate >= rentalFrom
+      )
+      if (conflict) {
+        return {
+          status: 'blocked' as const,
+          message: 'Unavailable for selected dates',
+          conflictRange: conflict,
+        }
+      }
+    }
+
+    return {
+      status: 'available' as const,
+      message: 'Available for selected dates',
+    }
+  }, [rentalFrom, rentalUntil, equipment])
+
   function validateRentalForm(): FormErrors {
     const newErrors: FormErrors = {}
 
@@ -130,7 +184,13 @@ function EquipmentDetails() {
     }
 
     if (rentalFrom !== '' && rentalUntil !== '' && rentalUntil < rentalFrom) {
-      newErrors.rentalUntil = 'Rental Until date cannot be earlier than Rental From date.'
+      newErrors.rentalUntil = 'Rental End Date cannot be earlier than Rental Start Date.'
+    }
+
+    if (availabilityState.status === 'outside_window') {
+      newErrors.rentalFrom = availabilityState.message
+    } else if (availabilityState.status === 'blocked') {
+      newErrors.rentalFrom = 'Unavailable for selected dates'
     }
 
     if (!agreementAccepted) {
@@ -146,7 +206,7 @@ function EquipmentDetails() {
     const newErrors = validateRentalForm()
     setErrors(newErrors)
 
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.keys(newErrors).length > 0 || availabilityState.status !== 'available') {
       setMessage({ text: 'Please fix the highlighted fields below.', type: 'error' })
       return
     }
@@ -157,7 +217,7 @@ function EquipmentDetails() {
       setIsBookingSubmitting(true)
       setMessage(null)
 
-      const response = await createBooking({
+      await createBooking({
         equipmentId: equipment.id,
         startDate: rentalFrom,
         endDate: rentalUntil,
@@ -166,10 +226,13 @@ function EquipmentDetails() {
       })
 
       setMessage({
-        text: `Booking request placed successfully! Booking ID #${response.booking.id} (Status: ${response.booking.status}). Total: ₹${response.booking.totalAmount.toLocaleString('en-IN')}. Rental agreement v1.0 accepted.`,
+        text: 'Booking request submitted successfully. Waiting for owner approval.',
         type: 'success',
       })
       setAgreementAccepted(false)
+      if (id) {
+        getEquipmentById(id).then(setEquipment).catch(() => {})
+      }
     } catch (err) {
       setMessage({
         text: err instanceof Error ? err.message : 'Failed to submit booking request.',
@@ -432,13 +495,44 @@ function EquipmentDetails() {
                       </select>
                     </div>
 
-                    {calculatedDays > 0 && (
-                      <div className="bg-[#ecfdf5] border border-[#d1fae5] rounded-[6px] p-3 text-sm text-[#14532d] flex justify-between items-center">
-                        <div>
-                          <span className="font-semibold">{calculatedDays} day{calculatedDays > 1 ? 's' : ''}</span>
-                          <span className="text-xs text-[#166534] ml-1.5">(@ ₹{equipment.pricePerDay.toLocaleString('en-IN')}/day)</span>
+                    {availabilityState.status === 'invalid_order' && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-[6px] text-xs font-semibold">
+                        {availabilityState.message}
+                      </div>
+                    )}
+
+                    {availabilityState.status === 'outside_window' && (
+                      <div className="bg-amber-50 border border-amber-300 text-amber-900 px-3.5 py-2.5 rounded-[6px] text-xs font-semibold flex items-center justify-between">
+                        <span>{availabilityState.message}</span>
+                        <span className="text-[11px] font-normal text-amber-700">Outside equipment window</span>
+                      </div>
+                    )}
+
+                    {availabilityState.status === 'blocked' && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-[6px] text-xs font-semibold">
+                        <div className="flex items-center justify-between">
+                          <span>Unavailable for selected dates</span>
+                          <span className="text-[11px] font-normal text-red-600">Reserved</span>
                         </div>
-                        <div className="text-base font-bold text-[#166534]">
+                        {availabilityState.conflictRange && (
+                          <div className="text-[11px] text-red-600 font-normal mt-1">
+                            Conflicting booking: {availabilityState.conflictRange.startDate} to {availabilityState.conflictRange.endDate}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {availabilityState.status === 'available' && calculatedDays > 0 && (
+                      <div className="bg-[#ecfdf5] border border-[#d1fae5] rounded-[6px] p-3 text-sm text-[#14532d]">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-bold text-[#166534] flex items-center gap-1.5">
+                            <span>✓</span> Available for selected dates
+                          </span>
+                          <span className="font-semibold text-xs text-[#166534]">
+                            {calculatedDays} day{calculatedDays > 1 ? 's' : ''} (@ ₹{equipment.pricePerDay.toLocaleString('en-IN')}/day)
+                          </span>
+                        </div>
+                        <div className="text-base font-bold text-[#166534] text-right">
                           Total: ₹{calculatedTotal.toLocaleString('en-IN')}
                         </div>
                       </div>
@@ -497,7 +591,7 @@ function EquipmentDetails() {
 
                     <button
                       type="submit"
-                      disabled={isBookingSubmitting || !agreementAccepted}
+                      disabled={isBookingSubmitting || !agreementAccepted || availabilityState.status !== 'available'}
                       className="btn-auth disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isBookingSubmitting ? 'Submitting Request...' : 'Confirm & Request to Rent'}
