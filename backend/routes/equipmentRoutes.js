@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const {
+  getMyEquipment,
   getAllEquipment,
   getEquipmentById,
   createEquipment,
@@ -13,6 +14,9 @@ const { requireAuth, requireRole } = require('../middleware/authMiddleware')
 // Public GET routes
 // GET /api/equipment
 router.get('/', getAllEquipment)
+
+// GET /api/equipment/mine - Authenticated owner views their own listings
+router.get('/mine', requireAuth, requireRole('OWNER'), getMyEquipment)
 
 // GET /api/equipment/:id
 router.get('/:id', getEquipmentById)

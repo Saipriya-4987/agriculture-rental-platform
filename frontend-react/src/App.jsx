@@ -11,6 +11,7 @@ import Register from './pages/Register'
 import ProtectedRoute from './components/ProtectedRoute'
 import MyBookings from './pages/MyBookings'
 import OwnerBookings from './pages/OwnerBookings'
+import OwnerMyListings from './pages/OwnerMyListings'
 
 // M4 step 1 + M9 Step 2 + M10 Step 5 + M11 Step 2: client-side routing.
 function App() {
@@ -57,6 +58,14 @@ function App() {
           element={
             <ProtectedRoute requiredRole="OWNER">
               <OwnerBookings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/owner/listings"
+          element={
+            <ProtectedRoute requiredRole="OWNER">
+              <OwnerMyListings />
             </ProtectedRoute>
           }
         />

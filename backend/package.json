@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "postinstall": "prisma generate",
-    "test": "node tests/bookingAvailability.test.js"
+    "test": "node tests/bookingAvailability.test.js && node tests/equipmentOwner.test.js"
   },
   "keywords": [],
   "author": "",

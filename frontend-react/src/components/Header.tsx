@@ -59,6 +59,16 @@ function Header() {
               {user.role === 'OWNER' && (
                 <>
                   <NavLink
+                    to="/owner/listings"
+                    className={({ isActive }) =>
+                      isActive
+                        ? 'font-bold text-[#166534]'
+                        : 'font-medium text-[#374151] hover:text-[#166534]'
+                    }
+                  >
+                    My Listings
+                  </NavLink>
+                  <NavLink
                     to="/owner/bookings"
                     className={({ isActive }) =>
                       isActive

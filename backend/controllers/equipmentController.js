@@ -56,6 +56,57 @@ const formatEquipment = (item) => {
   }
 }
 
+// Build Prisma where clause for equipment owned by the authenticated user.
+const buildOwnerEquipmentWhere = (user) => {
+  const orConditions = [{ owner_id: user.id }]
+
+  const name =
+    user.name != null && String(user.name).trim() !== '' ? String(user.name).trim() : null
+  const email =
+    user.email != null && String(user.email).trim() !== '' ? String(user.email).trim() : null
+
+  const legacyOwnerMatches = []
+  if (name) {
+    legacyOwnerMatches.push({ owner: name })
+  }
+  if (email) {
+    legacyOwnerMatches.push({ owner: email })
+  }
+
+  // Legacy string match only when owner_id is unset (same rule as update/delete).
+  if (legacyOwnerMatches.length > 0) {
+    orConditions.push({
+      AND: [{ owner_id: null }, { OR: legacyOwnerMatches }]
+    })
+  }
+
+  return { OR: orConditions }
+}
+
+// GET equipment listings for the authenticated owner
+// GET /api/equipment/mine
+const getMyEquipment = async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, name: true, email: true }
+    })
+
+    if (!user) {
+      throw new AppError('User not found', 404)
+    }
+
+    const items = await prisma.equipment.findMany({
+      where: buildOwnerEquipmentWhere(user),
+      orderBy: { id: 'asc' }
+    })
+
+    res.json(items.map(formatEquipment))
+  } catch (err) {
+    next(err)
+  }
+}
+
 // GET all equipment (Prisma findMany)
 const getAllEquipment = async (req, res, next) => {
   try {
@@ -304,6 +355,7 @@ const deleteEquipment = async (req, res, next) => {
 }
 
 module.exports = {
+  getMyEquipment,
   getAllEquipment,
   getEquipmentById,
   createEquipment,

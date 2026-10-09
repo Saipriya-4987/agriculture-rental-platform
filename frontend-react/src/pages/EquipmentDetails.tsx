@@ -4,7 +4,8 @@ import EquipmentImage from '../components/EquipmentImage'
 import {
   getEquipmentById,
   deleteEquipment,
-  hasRole,
+  getAuthUser,
+  isEquipmentOwnedByUser,
   createBooking,
   getBookingQuote,
   isAuthenticated,
@@ -691,8 +692,8 @@ function EquipmentDetails() {
                 )}
               </div>
 
-              {/* OWNER ACTIONS: Edit and Delete (Accessible to OWNER role) */}
-              {hasRole('OWNER') && (
+              {/* OWNER ACTIONS: Edit and Delete (only for the listing owner) */}
+              {isEquipmentOwnedByUser(equipment, getAuthUser()) && (
                 <div className="mb-6 pt-6 border-t border-[#e5e7eb]">
                   <h2 className="text-[1.1rem] font-bold text-[#1f2937] mb-3">Manage Listing</h2>
 

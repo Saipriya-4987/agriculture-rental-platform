@@ -1,5 +1,6 @@
 export interface Equipment {
   id: number
+  ownerId?: number | null
   name: string
   category: string
   categoryValue?: string
@@ -244,6 +245,14 @@ export async function getEquipmentList(): Promise<Equipment[]> {
 }
 
 /**
+ * Fetch equipment listings owned by the authenticated owner.
+ * GET /api/equipment/mine
+ */
+export async function getMyEquipment(): Promise<Equipment[]> {
+  return apiRequest<Equipment[]>('/equipment/mine')
+}
+
+/**
  * Fetch a single equipment item by its ID.
  */
 export async function getEquipmentById(id: string | number): Promise<Equipment> {
@@ -373,6 +382,27 @@ export function hasRole(...roles: string[]): boolean {
   const userRole = getUserRole()
   if (!userRole) return false
   return roles.map(r => r.toUpperCase()).includes(userRole.toUpperCase())
+}
+
+/**
+ * Whether the logged-in user owns a listing (matches backend update/delete rules).
+ */
+export function isEquipmentOwnedByUser(
+  equipment: Pick<Equipment, 'ownerId' | 'owner'>,
+  user: SafeUser | null
+): boolean {
+  if (!user) return false
+
+  if (equipment.ownerId != null) {
+    return equipment.ownerId === user.id
+  }
+
+  const ownerLabel = (equipment.owner ?? '').trim()
+  if (!ownerLabel) return false
+
+  const name = (user.name ?? '').trim()
+  const email = (user.email ?? '').trim()
+  return (name !== '' && ownerLabel === name) || (email !== '' && ownerLabel === email)
 }
 
 export const authApi = {
@@ -621,6 +651,7 @@ export const bookingApi = {
 
 export const equipmentApi = {
   getAll: getEquipmentList,
+  getMine: getMyEquipment,
   getById: getEquipmentById,
   getReviews: getEquipmentReviews,
   create: createEquipment,
