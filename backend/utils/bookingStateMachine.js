@@ -10,6 +10,8 @@
  * trigger PICKED_UP -> ACTIVE; this happens atomically inside pickupBooking().
  */
 
+const { isEquipmentOwner } = require('./ownership')
+
 const BookingStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
@@ -89,13 +91,10 @@ function isValidTransition(fromStatus, toStatus) {
  */
 function validateTransitionAuth(booking, user, targetStatus) {
   const currentStatus = booking.status
-  const isEquipmentOwner = Boolean(
-    (booking.equipment?.owner_id && booking.equipment.owner_id === user.id) ||
-    (booking.equipment?.owner && (booking.equipment.owner === user.name || booking.equipment.owner === user.email))
-  )
+  const isOwner = isEquipmentOwner(booking.equipment, user.id)
   const isFarmer = Boolean(booking.farmer_id === user.id)
 
-  if (!isEquipmentOwner && !isFarmer) {
+  if (!isOwner && !isFarmer) {
     return {
       allowed: false,
       statusCode: 403,
@@ -112,7 +111,7 @@ function validateTransitionAuth(booking, user, targetStatus) {
   }
 
   const requiredRole = ROLE_RULES[currentStatus]?.[targetStatus]
-  if (requiredRole === 'OWNER' && !isEquipmentOwner) {
+  if (requiredRole === 'OWNER' && !isOwner) {
     return {
       allowed: false,
       statusCode: 403,
@@ -128,12 +127,12 @@ function validateTransitionAuth(booking, user, targetStatus) {
     }
   }
 
-  const actorRole = isEquipmentOwner ? 'OWNER' : 'FARMER'
+  const actorRole = isOwner ? 'OWNER' : 'FARMER'
 
   return {
     allowed: true,
     actorRole,
-    isEquipmentOwner,
+    isEquipmentOwner: isOwner,
     isFarmer
   }
 }

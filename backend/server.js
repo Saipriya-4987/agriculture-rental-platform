@@ -8,6 +8,7 @@ const reviewRoutes = require('./routes/reviewRoutes')
 const adminRoutes = require('./routes/adminRoutes')
 const { errorHandler } = require('./middleware/errorHandler')
 const { requestLogger } = require('./middleware/requestLogger')
+const { getJwtSecret } = require('./utils/jwtSecret')
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -85,6 +86,9 @@ app.use(errorHandler)
 
 // Start server on 0.0.0.0 and PORT
 if (require.main === module) {
+  // Fail fast: refuse to start without a strong JWT_SECRET
+  getJwtSecret()
+
   app.listen(PORT, HOST, () => {
     console.log(`AgriRent API server running on http://${HOST}:${PORT}`)
   })

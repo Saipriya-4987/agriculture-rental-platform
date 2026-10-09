@@ -1,19 +1,13 @@
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const prisma = require('../prisma/client')
+const { getJwtSecret } = require('../utils/jwtSecret')
 
 class AppError extends Error {
   constructor(message, statusCode) {
     super(message)
     this.statusCode = statusCode
   }
-}
-
-const getJwtSecret = () => {
-  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-    throw new Error('FATAL: JWT_SECRET environment variable must be set in production.')
-  }
-  return process.env.JWT_SECRET || 'agrirent-default-super-secret-jwt-key'
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

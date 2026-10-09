@@ -1,4 +1,5 @@
 const prisma = require('../prisma/client')
+const { isEquipmentOwner } = require('../utils/ownership')
 const {
   BookingStatus,
   ALL_STATUSES,
@@ -379,13 +380,7 @@ const getOwnerBookings = async (req, res, next) => {
 
     // Retrieve equipment belonging to this owner
     const ownerEquipments = await prisma.equipment.findMany({
-      where: {
-        OR: [
-          { owner_id: ownerId },
-          { owner: req.user.name },
-          { owner: req.user.email }
-        ]
-      },
+      where: { owner_id: ownerId },
       select: { id: true }
     })
 
@@ -1000,14 +995,11 @@ const getBookingTimeline = async (req, res, next) => {
 
     if (!booking) throw new AppError('Booking not found', 404)
 
-    const isEquipmentOwner = Boolean(
-      (booking.equipment?.owner_id && booking.equipment.owner_id === req.user.id) ||
-      (booking.equipment?.owner && (booking.equipment.owner === req.user.name || booking.equipment.owner === req.user.email))
-    )
+    const isOwner = isEquipmentOwner(booking.equipment, req.user.id)
     const isFarmer = Boolean(booking.farmer_id === req.user.id)
     const isAdmin = req.user.role === 'ADMIN'
 
-    if (!isEquipmentOwner && !isFarmer && !isAdmin) {
+    if (!isOwner && !isFarmer && !isAdmin) {
       throw new AppError('Forbidden: Not authorized to view this booking timeline', 403)
     }
 
@@ -1056,14 +1048,11 @@ const getBookingById = async (req, res, next) => {
 
     if (!booking) throw new AppError('Booking not found', 404)
 
-    const isEquipmentOwner = Boolean(
-      (booking.equipment?.owner_id && booking.equipment.owner_id === req.user.id) ||
-      (booking.equipment?.owner && (booking.equipment.owner === req.user.name || booking.equipment.owner === req.user.email))
-    )
+    const isOwner = isEquipmentOwner(booking.equipment, req.user.id)
     const isFarmer = Boolean(booking.farmer_id === req.user.id)
     const isAdmin = req.user.role === 'ADMIN'
 
-    if (!isEquipmentOwner && !isFarmer && !isAdmin) {
+    if (!isOwner && !isFarmer && !isAdmin) {
       throw new AppError('Forbidden: Not authorized to view this booking', 403)
     }
 
