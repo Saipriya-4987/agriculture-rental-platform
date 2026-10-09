@@ -6,11 +6,13 @@ import {
   deleteEquipment,
   hasRole,
   createBooking,
+  getBookingQuote,
   isAuthenticated,
   getUserRole,
   getEquipmentReviews,
   type Equipment,
   type Review,
+  type BookingQuoteResponse,
 } from '../services/api'
 
 interface FormErrors {
@@ -61,6 +63,11 @@ function EquipmentDetails() {
   const [isBookingSubmitting, setIsBookingSubmitting] = useState<boolean>(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [message, setMessage] = useState<Message | null>(null)
+
+  // Server-side booking quote state
+  const [quoteLoading, setQuoteLoading] = useState<boolean>(false)
+  const [quoteError, setQuoteError] = useState<string | null>(null)
+  const [quote, setQuote] = useState<BookingQuoteResponse | null>(null)
 
   const [isDeleting, setIsDeleting] = useState<boolean>(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -118,6 +125,48 @@ function EquipmentDetails() {
     }
   }, [id])
 
+  // Fetch server-side booking quote whenever rental dates change
+  useEffect(() => {
+    if (!equipment || !rentalFrom || !rentalUntil || rentalUntil < rentalFrom) {
+      return
+    }
+
+    let ignore = false
+    queueMicrotask(() => {
+      if (!ignore) {
+        setQuoteLoading(true)
+        setQuoteError(null)
+      }
+    })
+
+    getBookingQuote({
+      equipmentId: equipment.id,
+      startDate: rentalFrom,
+      endDate: rentalUntil,
+    })
+      .then((res) => {
+        if (!ignore) {
+          setQuote(res)
+          setQuoteError(null)
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setQuote(null)
+          setQuoteError(err instanceof Error ? err.message : 'Failed to check booking availability.')
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setQuoteLoading(false)
+        }
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [equipment, rentalFrom, rentalUntil])
+
   const availabilityState = useMemo(() => {
     if (!rentalFrom || !rentalUntil) {
       return { status: 'idle' as const, message: '' }
@@ -130,7 +179,44 @@ function EquipmentDetails() {
       }
     }
 
-    // Equipment availability window check
+    if (quoteLoading) {
+      return {
+        status: 'loading' as const,
+        message: 'Checking availability and calculating price...',
+      }
+    }
+
+    if (quoteError) {
+      return {
+        status: 'error' as const,
+        message: quoteError,
+      }
+    }
+
+    if (quote && quote.startDate === rentalFrom && quote.endDate === rentalUntil) {
+      if (!quote.isAvailable) {
+        if (quote.reason === 'OUTSIDE_AVAILABILITY' || quote.message.startsWith('Available from') || quote.message.startsWith('Available until')) {
+          return {
+            status: 'outside_window' as const,
+            message: quote.message,
+          }
+        }
+        return {
+          status: 'blocked' as const,
+          message: quote.message || 'Unavailable for selected dates',
+          conflictRange: quote.conflict,
+        }
+      }
+
+      return {
+        status: 'available' as const,
+        message: quote.message || 'Available for selected dates',
+        totalDays: quote.totalDays,
+        totalAmount: quote.totalAmount,
+      }
+    }
+
+    // Fallback while waiting for quote request or before quote arrives
     const fromStr = equipment?.availabilityFrom
     const toStr = equipment?.availabilityTo
     if (fromStr && toStr) {
@@ -152,7 +238,6 @@ function EquipmentDetails() {
       }
     }
 
-    // Check reserved ranges (CONFIRMED, ACTIVE, etc.)
     if (equipment?.reservedRanges && equipment.reservedRanges.length > 0) {
       const conflict = equipment.reservedRanges.find(
         (r) => r.startDate <= rentalUntil && r.endDate >= rentalFrom
@@ -167,10 +252,10 @@ function EquipmentDetails() {
     }
 
     return {
-      status: 'available' as const,
-      message: 'Available for selected dates',
+      status: 'idle' as const,
+      message: '',
     }
-  }, [rentalFrom, rentalUntil, equipment])
+  }, [rentalFrom, rentalUntil, equipment, quote, quoteLoading, quoteError])
 
   function validateRentalForm(): FormErrors {
     const newErrors: FormErrors = {}
@@ -191,6 +276,8 @@ function EquipmentDetails() {
       newErrors.rentalFrom = availabilityState.message
     } else if (availabilityState.status === 'blocked') {
       newErrors.rentalFrom = 'Unavailable for selected dates'
+    } else if (availabilityState.status === 'error') {
+      newErrors.rentalFrom = availabilityState.message
     }
 
     if (!agreementAccepted) {
@@ -206,7 +293,7 @@ function EquipmentDetails() {
     const newErrors = validateRentalForm()
     setErrors(newErrors)
 
-    if (Object.keys(newErrors).length > 0 || availabilityState.status !== 'available') {
+    if (Object.keys(newErrors).length > 0 || availabilityState.status !== 'available' || quoteLoading) {
       setMessage({ text: 'Please fix the highlighted fields below.', type: 'error' })
       return
     }
@@ -331,17 +418,8 @@ function EquipmentDetails() {
     availabilityList = [`${equipment.availabilityFrom} – ${equipment.availabilityTo}`]
   }
 
-  let calculatedDays = 0
-  let calculatedTotal = 0
-  if (rentalFrom && rentalUntil && rentalUntil >= rentalFrom && equipment) {
-    const start = new Date(rentalFrom + 'T00:00:00Z')
-    const end = new Date(rentalUntil + 'T00:00:00Z')
-    const diffMs = end.getTime() - start.getTime()
-    if (!isNaN(diffMs) && diffMs >= 0) {
-      calculatedDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1
-      calculatedTotal = calculatedDays * equipment.pricePerDay
-    }
-  }
+  const previewDays = (availabilityState.status === 'available' && availabilityState.totalDays) ? availabilityState.totalDays : 0
+  const previewTotal = (availabilityState.status === 'available' && availabilityState.totalAmount !== undefined) ? availabilityState.totalAmount : 0
 
   return (
     <>
@@ -495,6 +573,19 @@ function EquipmentDetails() {
                       </select>
                     </div>
 
+                    {availabilityState.status === 'loading' && (
+                      <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3.5 py-2.5 rounded-[6px] text-xs font-semibold flex items-center gap-2">
+                        <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        <span>Checking availability and calculating price...</span>
+                      </div>
+                    )}
+
+                    {availabilityState.status === 'error' && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-[6px] text-xs font-semibold">
+                        <span>{availabilityState.message}</span>
+                      </div>
+                    )}
+
                     {availabilityState.status === 'invalid_order' && (
                       <div className="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-[6px] text-xs font-semibold">
                         {availabilityState.message}
@@ -522,18 +613,18 @@ function EquipmentDetails() {
                       </div>
                     )}
 
-                    {availabilityState.status === 'available' && calculatedDays > 0 && (
+                    {availabilityState.status === 'available' && previewDays > 0 && (
                       <div className="bg-[#ecfdf5] border border-[#d1fae5] rounded-[6px] p-3 text-sm text-[#14532d]">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-[#166534] flex items-center gap-1.5">
                             <span>✓</span> Available for selected dates
                           </span>
                           <span className="font-semibold text-xs text-[#166534]">
-                            {calculatedDays} day{calculatedDays > 1 ? 's' : ''} (@ ₹{equipment.pricePerDay.toLocaleString('en-IN')}/day)
+                            {previewDays} day{previewDays > 1 ? 's' : ''} (@ ₹{equipment.pricePerDay.toLocaleString('en-IN')}/day)
                           </span>
                         </div>
                         <div className="text-base font-bold text-[#166534] text-right">
-                          Total: ₹{calculatedTotal.toLocaleString('en-IN')}
+                          Total: ₹{previewTotal.toLocaleString('en-IN')}
                         </div>
                       </div>
                     )}

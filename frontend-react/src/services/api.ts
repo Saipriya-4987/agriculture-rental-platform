@@ -551,6 +551,11 @@ export interface BookingQuoteResponse {
   totalAmount: number
   isAvailable: boolean
   message: string
+  reason?: 'OUTSIDE_AVAILABILITY' | 'BLOCKED_DATES' | string
+  conflict?: {
+    startDate: string
+    endDate: string
+  }
 }
 
 /**
