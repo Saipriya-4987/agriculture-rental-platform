@@ -170,7 +170,10 @@ function EquipmentDetails() {
 
   const availabilityState = useMemo(() => {
     if (!rentalFrom || !rentalUntil) {
-      return { status: 'idle' as const, message: '' }
+      return {
+        status: 'idle' as const,
+        message: 'Select rental dates to check availability.',
+      }
     }
 
     if (rentalUntil < rentalFrom) {
@@ -317,6 +320,8 @@ function EquipmentDetails() {
         text: 'Booking request submitted successfully. Waiting for owner approval.',
         type: 'success',
       })
+      setRentalFrom('')
+      setRentalUntil('')
       setAgreementAccepted(false)
       if (id) {
         getEquipmentById(id).then(setEquipment).catch(() => {})
@@ -413,10 +418,11 @@ function EquipmentDetails() {
   const features = equipment.features && equipment.features.length > 0 ? equipment.features : DEFAULT_FEATURES
 
   let availabilityList = DEFAULT_AVAILABILITY_WINDOWS
-  if (equipment.availability && equipment.availability.length > 0) {
-    availabilityList = equipment.availability
-  } else if (equipment.availabilityFrom && equipment.availabilityTo) {
+  if (equipment.availabilityFrom && equipment.availabilityTo) {
+    // Exact dates take priority so the user sees the true window the backend enforces
     availabilityList = [`${equipment.availabilityFrom} – ${equipment.availabilityTo}`]
+  } else if (equipment.availability && equipment.availability.length > 0) {
+    availabilityList = equipment.availability
   }
 
   const previewDays = (availabilityState.status === 'available' && availabilityState.totalDays) ? availabilityState.totalDays : 0
@@ -494,7 +500,17 @@ function EquipmentDetails() {
                     }`}
                     aria-live="polite"
                   >
-                    {message.text}
+                    <div>{message.text}</div>
+                    {(message.type === 'success' || message.text.includes('My Bookings')) && (
+                      <div className="mt-2.5">
+                        <Link
+                          to="/my-bookings"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#166534] text-white text-xs font-semibold rounded-[6px] hover:bg-[#14532d] transition-colors"
+                        >
+                          View My Bookings →
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -530,7 +546,16 @@ function EquipmentDetails() {
                           name="rental_from"
                           aria-label="Rental from"
                           value={rentalFrom}
-                          onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalFrom(event.target.value)}
+                          min={equipment.availabilityFrom || undefined}
+                          max={equipment.availabilityTo || undefined}
+                          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                            const newFrom = event.target.value
+                            setRentalFrom(newFrom)
+                            // Clear end date if it is now before the new start date
+                            if (rentalUntil && rentalUntil < newFrom) {
+                              setRentalUntil('')
+                            }
+                          }}
                           className="px-3.5 py-2.5 border border-[#d1d5db] rounded-[6px] w-full text-base text-[#1f2937] bg-white focus:outline-none focus:border-[#166534]"
                         />
                         {errors.rentalFrom && (
@@ -548,6 +573,8 @@ function EquipmentDetails() {
                           name="rental_until"
                           aria-label="Rental until"
                           value={rentalUntil}
+                          min={rentalFrom || equipment.availabilityFrom || undefined}
+                          max={equipment.availabilityTo || undefined}
                           onChange={(event: ChangeEvent<HTMLInputElement>) => setRentalUntil(event.target.value)}
                           className="px-3.5 py-2.5 border border-[#d1d5db] rounded-[6px] w-full text-base text-[#1f2937] bg-white focus:outline-none focus:border-[#166534]"
                         />
@@ -593,7 +620,13 @@ function EquipmentDetails() {
                       </div>
                     )}
 
-                    {availabilityState.status === 'outside_window' && (
+                    {availabilityState.status === 'idle' && (
+                      <div className="bg-gray-50 border border-[#e5e7eb] text-[#6b7280] px-3.5 py-2.5 rounded-[6px] text-xs">
+                        {availabilityState.message}
+                      </div>
+                    )}
+
+                    {availabilityState.status === 'outside_window' && rentalFrom && rentalUntil && (
                       <div className="bg-amber-50 border border-amber-300 text-amber-900 px-3.5 py-2.5 rounded-[6px] text-xs font-semibold flex items-center justify-between">
                         <span>{availabilityState.message}</span>
                         <span className="text-[11px] font-normal text-amber-700">Outside equipment window</span>

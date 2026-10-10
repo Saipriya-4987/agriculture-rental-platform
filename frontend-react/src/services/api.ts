@@ -199,21 +199,65 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
     defaultAuthHeaders.Authorization = `Bearer ${token}`
   }
 
+  const timeoutMs = 30000
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => {
+    controller.abort(new Error('Request timed out after 30 seconds'))
+  }, timeoutMs)
+
+  if (options.signal) {
+    options.signal.addEventListener('abort', () => {
+      clearTimeout(timeoutId)
+      controller.abort(options.signal?.reason)
+    })
+  }
+
   try {
     response = await fetch(url, {
       ...options,
+      signal: controller.signal,
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...defaultAuthHeaders,
         ...options.headers,
       },
     })
-  } catch (networkError) {
+  } catch (networkError: unknown) {
+    clearTimeout(timeoutId)
+    const isTimeout =
+      (controller.signal.aborted && !options.signal?.aborted) ||
+      (networkError instanceof Error && networkError.name === 'TimeoutError')
+
+    if (isTimeout) {
+      if (endpoint === '/bookings' && options.method === 'POST') {
+        throw new ApiError(
+          'Booking request timed out. The outcome is unconfirmed because the server may still be processing your request. Please check My Bookings before trying again.',
+          408,
+          networkError
+        )
+      }
+      throw new ApiError(
+        'Request timed out. Please check your network connection and try again.',
+        408,
+        networkError
+      )
+    }
+
+    if (endpoint === '/bookings' && options.method === 'POST') {
+      throw new ApiError(
+        'Unable to confirm booking status due to a network connection issue. The outcome is unconfirmed. Please check My Bookings before trying again.',
+        0,
+        networkError
+      )
+    }
+
     throw new ApiError(
       'Unable to connect to the AgriRent server. Please ensure the backend is running and reachable.',
       0,
       networkError
     )
+  } finally {
+    clearTimeout(timeoutId)
   }
 
   if (!response.ok) {
